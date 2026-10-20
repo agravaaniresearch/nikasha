@@ -1,0 +1,538 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Nikasha Readiness Bench</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<style>
+/* Layout: a working bench. Pipeline (inputs) on the left, the live scoring
+   record on the right; stacks to one column on narrow screens. */
+:root {
+  --bg: #efebe4;          /* stone */
+  --surface: #f8f5f0;     /* paper */
+  --sunk: #e6e0d6;
+  --ink: #26211d;
+  --muted: #6b6158;
+  --line: #d6cdc0;
+  --accent: #7d3427;      /* oxblood */
+  --accent-soft: #ead8cf;
+  --ok: #4f6b32; --ok-soft: #dfe6cf;
+  --warn: #93630f; --warn-soft: #f1e2bf;
+  --bad: #9a2c22; --bad-soft: #f1d6cf;
+  --nil: #6d5f52; --nil-soft: #e3dbd1;
+  --f-display: "Iowan Old Style", "Palatino Linotype", Palatino, "Book Antiqua", Georgia, serif;
+  --f-body: system-ui, -apple-system, "Segoe UI", Roboto, "Noto Sans", Ubuntu, sans-serif;
+  --f-mono: ui-monospace, "SF Mono", Menlo, Consolas, "Liberation Mono", monospace;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #1d1a17; --surface: #262220; --sunk: #2f2a26; --ink: #ede5da; --muted: #a99d90; --line: #3d3631;
+    --accent: #d98b75; --accent-soft: #43281f;
+    --ok: #a7c27f; --ok-soft: #2c3522; --warn: #e0b45c; --warn-soft: #3d3119;
+    --bad: #e88d7f; --bad-soft: #432420; --nil: #b9aa9a; --nil-soft: #35302b;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #1d1a17; --surface: #262220; --sunk: #2f2a26; --ink: #ede5da; --muted: #a99d90; --line: #3d3631;
+  --accent: #d98b75; --accent-soft: #43281f;
+  --ok: #a7c27f; --ok-soft: #2c3522; --warn: #e0b45c; --warn-soft: #3d3119;
+  --bad: #e88d7f; --bad-soft: #432420; --nil: #b9aa9a; --nil-soft: #35302b;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; }
+body {
+  background: var(--bg); color: var(--ink); font: 14px/1.5 var(--f-body);
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  padding-block: 0 40px;
+}
+h1, h2, h3 { font-family: var(--f-display); font-weight: 600; text-wrap: balance; margin: 0; }
+h1 { font-size: 30px; letter-spacing: 0.01em; }
+h2 { font-size: 19px; }
+h3 { font-size: 15px; }
+.eyebrow { font-size: 11px; text-transform: uppercase; letter-spacing: 0.09em; color: var(--muted); font-weight: 600; }
+.mono, td.num, .num { font-family: var(--f-mono); font-variant-numeric: tabular-nums; }
+a { color: var(--accent); }
+button, select, input { font: inherit; color: var(--ink); }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+header.top { max-width: 1440px; margin: 0 auto; padding-block: 22px 14px; display: grid; gap: 10px; }
+.brand { display: flex; align-items: baseline; gap: 14px; flex-wrap: wrap; }
+.brand .gloss { color: var(--muted); font-family: var(--f-display); font-style: italic; }
+.notices { display: grid; gap: 6px; }
+.notice { border: 1px solid var(--line); border-left: 4px solid var(--warn); background: var(--warn-soft);
+  padding: 8px 12px; border-radius: 4px; font-size: 13px; }
+.notice.status { border-left-color: var(--accent); background: var(--accent-soft); font-weight: 600; }
+
+main.bench { max-width: 1440px; margin: 0 auto; display: grid; grid-template-columns: minmax(0, 430px) minmax(0, 1fr); gap: 20px; align-items: start; }
+@media (max-width: 960px) { main.bench { grid-template-columns: minmax(0, 1fr); } }
+
+.panel { background: var(--surface); border: 1px solid var(--line); border-radius: 6px; padding: 16px; display: grid; gap: 14px; min-width: 0; }
+.pipeline { position: sticky; top: env(safe-area-inset-top, 0px); max-height: 100vh; overflow-y: auto; }
+@media (max-width: 960px) { .pipeline { position: static; max-height: none; } }
+.stage { display: grid; gap: 10px; padding-top: 12px; border-top: 1px solid var(--line); }
+.stage:first-of-type { border-top: 0; padding-top: 0; }
+.stage-head { display: flex; align-items: baseline; gap: 8px; }
+.stage-head .step { font-family: var(--f-mono); font-size: 12px; color: var(--accent); }
+
+.tools { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+.tool-btn { text-align: left; border: 1px solid var(--line); background: var(--bg); border-radius: 5px; padding: 8px 10px; cursor: pointer; display: grid; gap: 2px; }
+.tool-btn:hover { border-color: var(--accent); }
+.tool-btn[aria-pressed="true"] { border-color: var(--accent); background: var(--accent-soft); }
+.tool-btn .tname { font-weight: 600; }
+.tool-btn .tmeta { font-size: 12px; color: var(--muted); }
+
+.field { display: grid; gap: 4px; }
+.field label, .field .lbl { font-size: 12px; font-weight: 600; color: var(--muted); }
+.field input, .field select { width: 100%; min-width: 0; padding: 6px 8px; border: 1px solid var(--line); border-radius: 4px; background: var(--bg); }
+.row2 { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 8px; }
+.hint { font-size: 12px; color: var(--muted); }
+.param { display: grid; gap: 6px; padding: 8px 10px; border: 1px solid var(--line); border-radius: 5px; background: var(--bg); }
+.param .ptitle { display: flex; justify-content: space-between; gap: 8px; font-weight: 600; }
+.param .anchor { font-size: 12px; color: var(--muted); }
+.tag { font-size: 11px; font-family: var(--f-mono); padding: 1px 6px; border-radius: 3px; background: var(--sunk); color: var(--muted); white-space: nowrap; }
+.btn { border: 1px solid var(--accent); background: transparent; color: var(--accent); border-radius: 4px; padding: 5px 10px; cursor: pointer; }
+.btn:hover { background: var(--accent-soft); }
+
+.dash { display: grid; gap: 16px; min-width: 0; }
+.verdict { display: grid; grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr); gap: 16px; }
+@media (max-width: 700px) { .verdict { grid-template-columns: minmax(0, 1fr); } }
+.vcard { border-left: 6px solid var(--nil); }
+.vcard.READY { border-left-color: var(--ok); }
+.vcard.CONDITIONAL { border-left-color: var(--warn); }
+.vcard.NOT_READY { border-left-color: var(--bad); }
+.vcard.REJECTED { border-left-color: var(--nil); }
+.pill { display: inline-block; font-weight: 700; font-size: 12px; letter-spacing: 0.06em; text-transform: uppercase; padding: 3px 10px; border-radius: 999px; }
+.pill.READY { background: var(--ok-soft); color: var(--ok); }
+.pill.CONDITIONAL { background: var(--warn-soft); color: var(--warn); }
+.pill.NOT_READY { background: var(--bad-soft); color: var(--bad); }
+.pill.REJECTED { background: var(--nil-soft); color: var(--nil); }
+.vlabel { font-family: var(--f-display); font-size: 24px; }
+.big { font-family: var(--f-display); font-size: 34px; line-height: 1.1; }
+.big small { font-family: var(--f-body); font-size: 13px; color: var(--muted); }
+.kv { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 3px 12px; font-size: 13px; }
+.kv dt { color: var(--muted); }
+.kv dd { margin: 0; font-family: var(--f-mono); font-variant-numeric: tabular-nums; }
+
+.band svg { width: 100%; height: auto; display: block; }
+.modes { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; }
+@media (max-width: 560px) { .modes { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+.modecell { border: 1px solid var(--line); border-radius: 5px; padding: 8px; display: grid; gap: 4px; background: var(--bg); }
+.modecell.current { border-color: var(--accent); }
+
+.scroll { overflow-x: auto; }
+table { border-collapse: collapse; width: 100%; font-size: 13px; }
+th, td { text-align: left; padding: 6px 8px; border-bottom: 1px solid var(--line); vertical-align: top; }
+th { font-size: 11px; text-transform: uppercase; letter-spacing: 0.07em; color: var(--muted); font-weight: 600; }
+tr.matched td { background: var(--accent-soft); font-weight: 600; }
+tr.fail td.state { color: var(--bad); font-weight: 700; }
+tr.pass td.state { color: var(--ok); font-weight: 700; }
+td.rule { color: var(--muted); font-size: 12px; min-width: 220px; }
+.tier-off { opacity: 0.55; }
+.muted { color: var(--muted); }
+details summary { cursor: pointer; font-weight: 600; }
+pre.json { font-family: var(--f-mono); font-size: 11px; background: var(--sunk); padding: 10px; border-radius: 4px; overflow-x: auto; max-height: 420px; }
+footer { max-width: 1440px; margin: 20px auto 0; color: var(--muted); font-size: 12px; }
+@media (prefers-reduced-motion: no-preference) { .bandfill { transition: x 0.25s, width 0.25s; } }
+</style>
+</head>
+<body>
+<header class="top">
+  <div class="brand">
+    <h1>Nikasha</h1>
+    <span class="gloss">nikasha, the touchstone that tests gold: a readiness bench for CT and MRI diagnostic AI</span>
+  </div>
+  <div class="notices">
+    <div class="notice status" id="status-line"></div>
+    <div class="notice" id="placeholder-notice"></div>
+  </div>
+</header>
+
+<main class="bench">
+  <section class="panel pipeline" aria-label="Pipeline">
+    <div class="stage">
+      <div class="stage-head"><span class="step">01</span><h2>Choose a tool</h2></div>
+      <div class="tools" id="tool-list"></div>
+      <div class="hint">The three preloaded tools are fictional and every figure is synthetic. Edits stay on this page and reset when it reloads.</div>
+      <div><button class="btn" id="reset-btn" type="button">Reset this tool</button></div>
+    </div>
+    <div class="stage">
+      <div class="stage-head"><span class="step">02</span><h2>Entry and autonomy</h2></div>
+      <div class="field"><label for="f-name">Tool name</label><input id="f-name" type="text"></div>
+      <div class="field"><label for="f-finding">Target finding</label><input id="f-finding" type="text"></div>
+      <div class="row2">
+        <div class="field"><label for="f-modality">Modality</label><select id="f-modality"></select></div>
+        <div class="field"><label for="f-mode">Autonomy mode</label><select id="f-mode"></select></div>
+      </div>
+      <div class="hint" id="mode-desc"></div>
+    </div>
+    <div class="stage">
+      <div class="stage-head"><span class="step">03</span><h2>Tier 1: legal gates</h2></div>
+      <div id="gate-fields" class="row2"></div>
+    </div>
+    <div class="stage">
+      <div class="stage-head"><span class="step">04</span><h2>Parameters</h2></div>
+      <div class="hint">Pick the magnitude level whose written anchor fits, then the strongest evidence actually offered. Derived parameters take their level from the infrastructure figures below.</div>
+      <div id="param-fields" style="display:grid;gap:8px"></div>
+    </div>
+    <div class="stage">
+      <div class="stage-head"><span class="step">05</span><h2>Infrastructure inputs</h2></div>
+      <div id="infra-fields" class="row2"></div>
+    </div>
+  </section>
+
+  <section class="dash" aria-label="Scoring dashboard" aria-live="polite">
+    <div class="verdict">
+      <div class="panel vcard" id="verdict-card"></div>
+      <div class="panel" id="carbon-card"></div>
+    </div>
+    <div class="panel band" id="band-card"></div>
+    <div class="panel" id="modes-card"></div>
+    <div class="panel" id="decision-card"></div>
+    <div class="panel" id="entry-card"></div>
+    <div class="panel" id="gates-card"></div>
+    <div class="panel" id="ko-card"></div>
+    <div class="panel" id="params-card"></div>
+    <div class="panel" id="certainty-card"></div>
+    <div class="panel" id="weights-card"></div>
+    <div class="panel"><details><summary>Full evaluation record (JSON)</summary><pre class="json" id="json-out"></pre></details></div>
+  </section>
+</main>
+<footer id="foot"></footer>
+
+<script id="nikasha-engine">
+/*@@ENGINE@@*/
+</script>
+<script id="nikasha-samples">
+/*@@SAMPLES@@*/
+</script>
+<script id="nikasha-ui">
+(function () {
+  'use strict';
+  var N = window.Nikasha;
+  var SAMPLES = window.NikashaSamples.SAMPLES;
+  var r1 = function (x) { return N.round(x, 1).toFixed(1); };
+  var r2 = function (x) { return N.round(x, 2).toFixed(2); };
+  var inr = function (x) { return 'INR ' + Math.round(x).toLocaleString('en-IN'); };
+
+  function clone(o) { return JSON.parse(JSON.stringify(o)); }
+  function blankTool() {
+    var params = {};
+    N.PARAMETERS.forEach(function (p) { params[p.id] = p.kind === 'derived' ? { certainty: 'unsupported' } : { magnitude: 0, certainty: 'unsupported' }; });
+    var infra = {};
+    N.INFRA_FIELDS.forEach(function (f) { infra[f.id] = 0; });
+    infra.gridIntensity = 710; infra.tariffPerKWh = 8; infra.studiesPerDay = 50;
+    return { id: 'blank', name: 'New tool', fictional: true, modality: 'CT', finding: '', mode: 'advisory',
+      summary: 'Blank entry. Everything starts unsupported and scores 0.', gates: {}, params: params, infra: infra };
+  }
+
+  var originals = SAMPLES.map(clone).concat([blankTool()]);
+  var working = originals.map(clone);
+  var current = 0;
+
+  function h(tag, attrs) {
+    var el = document.createElement(tag);
+    if (attrs) Object.keys(attrs).forEach(function (k) {
+      if (k === 'text') el.textContent = attrs[k];
+      else if (k === 'cls') el.className = attrs[k];
+      else el.setAttribute(k, attrs[k]);
+    });
+    for (var i = 2; i < arguments.length; i++) {
+      var c = arguments[i];
+      if (c === null || c === undefined) continue;
+      el.appendChild(typeof c === 'string' ? document.createTextNode(c) : c);
+    }
+    return el;
+  }
+  function clear(el) { while (el.firstChild) el.removeChild(el.firstChild); return el; }
+  function option(value, label, selected) { var o = h('option', { value: value, text: label }); if (selected) o.selected = true; return o; }
+  function table(headers, rows) {
+    var thead = h('thead', null, h('tr', null));
+    headers.forEach(function (x) { thead.firstChild.appendChild(h('th', { text: x })); });
+    var tbody = h('tbody');
+    rows.forEach(function (r) { tbody.appendChild(r); });
+    return h('div', { cls: 'scroll' }, h('table', null, thead, tbody));
+  }
+  function tr(cells, cls) {
+    var row = h('tr', cls ? { cls: cls } : null);
+    cells.forEach(function (c) {
+      if (c instanceof Node) row.appendChild(c);
+      else row.appendChild(h('td', { text: String(c) }));
+    });
+    return row;
+  }
+  function td(text, cls) { return h('td', { cls: cls || '', text: text }); }
+
+  // ---------- Pipeline ----------
+  function buildToolList() {
+    var list = clear(document.getElementById('tool-list'));
+    working.forEach(function (t, i) {
+      var b = h('button', { cls: 'tool-btn', type: 'button', 'aria-pressed': String(i === current), id: 'tool-' + t.id },
+        h('span', { cls: 'tname', text: t.name }),
+        h('span', { cls: 'tmeta', text: (t.id === 'blank' ? 'Start from nothing' : t.modality + ', ' + t.mode + ' (fictional)') }));
+      b.addEventListener('click', function () { current = i; buildPipeline(); });
+      list.appendChild(b);
+    });
+  }
+
+  function buildPipeline() {
+    var t = working[current];
+    buildToolList();
+    var name = document.getElementById('f-name'); name.value = t.name;
+    name.oninput = function () { t.name = name.value; update(); };
+    var finding = document.getElementById('f-finding'); finding.value = t.finding || '';
+    finding.oninput = function () { t.finding = finding.value; update(); };
+    var mod = clear(document.getElementById('f-modality'));
+    N.MODALITIES.forEach(function (m) { mod.appendChild(option(m.id, m.label + (m.inScope ? '' : ' (out of scope)'), m.id === t.modality)); });
+    mod.onchange = function () { t.modality = mod.value; update(); };
+    var mode = clear(document.getElementById('f-mode'));
+    N.MODES.forEach(function (m) { mode.appendChild(option(m.id, m.label, m.id === t.mode)); });
+    mode.onchange = function () { t.mode = mode.value; buildGates(); update(); };
+    buildGates();
+
+    var pf = clear(document.getElementById('param-fields'));
+    N.PARAMETERS.forEach(function (p) {
+      var input = t.params[p.id] || (t.params[p.id] = { certainty: 'unsupported' });
+      var box = h('div', { cls: 'param' });
+      box.appendChild(h('div', { cls: 'ptitle' }, h('span', { text: p.label }), h('span', { cls: 'tag', text: p.domain + (p.kind === 'derived' ? ', derived' : '') })));
+      var row = h('div', { cls: 'row2' });
+      var magField = h('div', { cls: 'field' });
+      if (p.kind === 'derived') {
+        magField.appendChild(h('span', { cls: 'lbl', text: 'Magnitude (computed)' }));
+        magField.appendChild(h('span', { cls: 'mono', id: 'mag-' + p.id }));
+      } else {
+        var ms = h('select', { id: 'mag-' + p.id, 'aria-label': p.label + ' magnitude' });
+        [0, 1, 2, 3].forEach(function (lv) { ms.appendChild(option(String(lv), 'Level ' + lv, input.magnitude === lv)); });
+        ms.onchange = function () { input.magnitude = parseInt(ms.value, 10); update(); };
+        magField.appendChild(h('label', { 'for': 'mag-' + p.id, text: 'Magnitude' }));
+        magField.appendChild(ms);
+      }
+      var cs = h('select', { id: 'cert-' + p.id, 'aria-label': p.label + ' evidence' });
+      N.CERTAINTY.forEach(function (c) { cs.appendChild(option(c.id, c.label, c.id === input.certainty)); });
+      cs.onchange = function () { input.certainty = cs.value; update(); };
+      row.appendChild(magField);
+      row.appendChild(h('div', { cls: 'field' }, h('label', { 'for': 'cert-' + p.id, text: 'Evidence' }), cs));
+      box.appendChild(row);
+      box.appendChild(h('div', { cls: 'anchor', id: 'anchor-' + p.id }));
+      pf.appendChild(box);
+    });
+
+    var inf = clear(document.getElementById('infra-fields'));
+    N.INFRA_FIELDS.forEach(function (f) {
+      var inp = h('input', { id: 'infra-' + f.id, type: 'number', min: '0', step: 'any' });
+      inp.value = t.infra[f.id];
+      inp.oninput = function () { t.infra[f.id] = inp.value === '' ? NaN : parseFloat(inp.value); update(); };
+      inf.appendChild(h('div', { cls: 'field' }, h('label', { 'for': 'infra-' + f.id, text: f.label + ' (' + f.unit + ')' }), inp));
+    });
+    update();
+  }
+
+  function buildGates() {
+    var t = working[current];
+    var gf = clear(document.getElementById('gate-fields'));
+    N.GATES.filter(function (g) { return g.modes.indexOf(t.mode) >= 0; }).forEach(function (g) {
+      var s = h('select', { id: 'gate-' + g.id, title: g.description });
+      [['met', 'Met (documented)'], ['not_met', 'Not met'], ['unknown', 'Unknown']].forEach(function (v) {
+        s.appendChild(option(v[0], v[1], (t.gates[g.id] || 'unknown') === v[0]));
+      });
+      s.onchange = function () { t.gates[g.id] = s.value; update(); };
+      gf.appendChild(h('div', { cls: 'field' }, h('label', { 'for': 'gate-' + g.id, text: g.label }), s));
+    });
+  }
+
+  // ---------- Dashboard ----------
+  function update() {
+    var t = working[current];
+    var r = N.evaluate(t);
+    document.getElementById('mode-desc').textContent = N.MODES.filter(function (m) { return m.id === r.mode; })[0].description +
+      ' READY needs a worst-case merit of ' + r.threshold + '.';
+    // pipeline echoes
+    N.PARAMETERS.forEach(function (p) {
+      var sp = r.params.filter(function (x) { return x.id === p.id; })[0];
+      var a = document.getElementById('anchor-' + p.id);
+      if (!a) return;
+      if (!sp) { a.textContent = 'Not scored: the tool was rejected at entry.'; return; }
+      a.textContent = 'Level ' + sp.magnitude + ': ' + sp.anchor + ' Effective ' + r2(sp.worst) + ' to ' + r2(sp.best) + '.';
+      if (p.kind === 'derived') document.getElementById('mag-' + p.id).textContent = 'Level ' + sp.magnitude + (sp.figure && isFinite(sp.figure.value) ? ' (' + r2(sp.figure.value) + ' ' + sp.figure.unit + ')' : '');
+    });
+    renderVerdict(r); renderCarbon(r); renderBand(r); renderModes(t, r); renderDecision(r);
+    renderEntry(r); renderGates(r); renderKnockouts(r); renderParams(r);
+    document.getElementById('json-out').textContent = JSON.stringify(r, null, 2);
+    var btn = document.getElementById('tool-' + t.id);
+    if (btn) btn.querySelector('.tname').textContent = t.name;
+  }
+
+  function renderVerdict(r) {
+    var c = clear(document.getElementById('verdict-card'));
+    c.className = 'panel vcard ' + r.decision.verdict;
+    c.setAttribute('data-verdict', r.decision.verdict);
+    c.appendChild(h('div', { cls: 'eyebrow', text: 'Readiness verdict, decided by row ' + r.decision.row }));
+    c.appendChild(h('div', null, h('span', { cls: 'pill ' + r.decision.verdict, id: 'verdict-pill', text: r.decision.verdict.replace('_', ' ') })));
+    c.appendChild(h('div', { cls: 'vlabel', id: 'verdict-label', text: r.decision.label }));
+    c.appendChild(h('div', { text: r.decision.reason }));
+    c.appendChild(h('div', { cls: 'hint', text: (r.tool.name || 'Unnamed tool') + ' | ' + (r.tool.finding || 'no finding stated') + ' | ' + r.mode + ' mode | engine ' + r.engineVersion }));
+    if (r.informationalOnly) c.appendChild(h('div', { cls: 'hint', text: 'Later tiers are still shown below for transparency. They do not change this verdict.' }));
+  }
+
+  function renderCarbon(r) {
+    var c = clear(document.getElementById('carbon-card'));
+    c.appendChild(h('div', { cls: 'eyebrow', text: 'Carbon footprint' }));
+    if (!r.figures || !r.figures.valid) {
+      c.appendChild(h('div', { cls: 'big', id: 'carbon-figure', text: 'Not computed' }));
+      c.appendChild(h('div', { cls: 'hint', text: r.entry.passed ? 'Infrastructure inputs missing: ' + r.figures.missing.join(', ') + '.' : 'Not computed because the tool was rejected at entry.' }));
+      return;
+    }
+    var f = r.figures;
+    c.appendChild(h('div', { cls: 'big', id: 'carbon-figure' }, Math.round(f.co2KgPerYear).toLocaleString('en-IN') + ' ', h('small', { text: 'kg CO2e per year' })));
+    var dl = h('dl', { cls: 'kv' });
+    [['Per study', r1(f.gco2PerStudy) + ' g CO2e'], ['Electricity', r2(f.kwhPerDay) + ' kWh/day'],
+     ['Running cost', inr(f.dailyCost) + '/day'], ['Storage', inr(f.storageMonthly) + '/month'],
+     ['Five-year TCO', inr(f.tco5y)]].forEach(function (x) { dl.appendChild(h('dt', { text: x[0] })); dl.appendChild(h('dd', { text: x[1] })); });
+    c.appendChild(dl);
+    c.appendChild(h('div', { cls: 'hint', text: 'Operational emissions only: ' + f.formulas.co2KgPerYear + '. Embodied hardware carbon is not counted.' }));
+  }
+
+  function renderBand(r) {
+    var c = clear(document.getElementById('band-card'));
+    c.appendChild(h('div', { cls: 'eyebrow', text: 'Tier 3: compensatory merit, best case to worst case' }));
+    if (!r.merit) { c.appendChild(h('div', { cls: 'muted', text: 'Not evaluated: the tool was rejected at entry.' })); c.classList.add('tier-off'); return; }
+    c.classList.toggle('tier-off', r.informationalOnly);
+    c.appendChild(h('div', { cls: 'big', id: 'merit-band' }, r1(r.merit.worst) + ' to ' + r1(r.merit.best) + ' ', h('small', { text: 'out of 100' })));
+    var W = 600, x = function (v) { return 20 + v / 100 * (W - 40); };
+    var ns = 'http://www.w3.org/2000/svg';
+    var svg = document.createElementNS(ns, 'svg');
+    svg.setAttribute('viewBox', '0 0 ' + W + ' 64'); svg.setAttribute('role', 'img');
+    svg.setAttribute('aria-label', 'Merit band from ' + r1(r.merit.worst) + ' to ' + r1(r.merit.best) + ', threshold ' + r.threshold);
+    function el(tag, a) { var e = document.createElementNS(ns, tag); Object.keys(a).forEach(function (k) { e.setAttribute(k, a[k]); }); svg.appendChild(e); return e; }
+    el('rect', { x: x(0), y: 20, width: x(100) - x(0), height: 14, rx: 3, fill: 'var(--sunk)' });
+    var col = r.decision.verdict === 'READY' ? 'var(--ok)' : r.decision.verdict === 'CONDITIONAL' ? 'var(--warn)' : 'var(--bad)';
+    el('rect', { 'class': 'bandfill', x: x(r.merit.worst), y: 20, width: Math.max(2, x(r.merit.best) - x(r.merit.worst)), height: 14, rx: 3, fill: col });
+    el('line', { x1: x(r.threshold), x2: x(r.threshold), y1: 12, y2: 42, stroke: 'var(--ink)', 'stroke-width': 2 });
+    var tl = el('text', { x: x(r.threshold), y: 9, 'text-anchor': 'middle', 'font-size': 11, fill: 'var(--ink)' }); tl.textContent = 'READY at ' + r.threshold;
+    [0, 25, 50, 75, 100].forEach(function (v) {
+      var tt = el('text', { x: x(v), y: 56, 'text-anchor': 'middle', 'font-size': 10, fill: 'var(--muted)' }); tt.textContent = String(v);
+    });
+    c.appendChild(svg);
+    c.appendChild(h('div', { cls: 'hint', text: r.merit.formula + ' The worst case uses the low end of each certainty range; the best case uses the high end.' }));
+  }
+
+  function renderModes(t, r) {
+    var c = clear(document.getElementById('modes-card'));
+    c.appendChild(h('div', { cls: 'eyebrow', text: 'Same tool under each autonomy mode (scrutiny rises left to right)' }));
+    var g = h('div', { cls: 'modes' });
+    N.MODES.forEach(function (m) {
+      var rm = N.evaluate(t, m.id);
+      g.appendChild(h('div', { cls: 'modecell' + (m.id === r.mode ? ' current' : '') },
+        h('span', { cls: 'eyebrow', text: m.label }),
+        h('span', null, h('span', { cls: 'pill ' + rm.decision.verdict, text: rm.decision.verdict.replace('_', ' ') })),
+        h('span', { cls: 'hint', text: rm.merit ? 'Band ' + r1(rm.merit.worst) + ' to ' + r1(rm.merit.best) + ', bar ' + rm.threshold : rm.decision.label })));
+    });
+    c.appendChild(g);
+  }
+
+  function renderDecision(r) {
+    var c = clear(document.getElementById('decision-card'));
+    c.appendChild(h('h2', { text: 'Decision table' }));
+    c.appendChild(h('div', { cls: 'hint', text: 'Rows are checked top to bottom. The first row whose condition holds decides the verdict.' }));
+    c.appendChild(table(['Row', 'Tier', 'Condition', 'Verdict', 'Holds?'], r.decisionTable.map(function (d) {
+      return tr([d.id, d.tier, d.condition, d.label, d.matched ? 'Yes, decides' : ''], d.matched ? 'matched' : '');
+    })));
+  }
+
+  function renderEntry(r) {
+    var c = clear(document.getElementById('entry-card'));
+    c.appendChild(h('h2', { text: 'Entry: scope check' }));
+    c.appendChild(table(['Modality', 'Result', 'Reason'], [tr([r.entry.modality || '?', td(r.entry.passed ? 'In scope' : 'Rejected', 'state'), td(r.entry.reason, 'rule')], r.entry.passed ? 'pass' : 'fail')]));
+    c.appendChild(h('div', { cls: 'hint', text: 'Rule: only CT and MRI diagnostic tools are scored. Any other modality, including X-ray, stops here with a stated reason.' }));
+  }
+
+  function renderGates(r) {
+    var c = clear(document.getElementById('gates-card'));
+    c.classList.toggle('tier-off', !r.entry.passed);
+    c.appendChild(h('h2', { text: 'Tier 1: legal gates' }));
+    if (!r.entry.passed) { c.appendChild(h('div', { cls: 'muted', text: 'Not evaluated: the tool was rejected at entry.' })); return; }
+    c.appendChild(table(['Gate', 'Input', 'Result', 'Rule'], r.gates.map(function (g) {
+      return tr([g.label, g.value.replace('_', ' '), td(g.passed ? 'Pass' : 'Fail', 'state'), td(g.rule, 'rule')], g.passed ? 'pass' : 'fail');
+    })));
+  }
+
+  function renderKnockouts(r) {
+    var c = clear(document.getElementById('ko-card'));
+    c.classList.toggle('tier-off', !r.entry.passed || r.decision.row === 'R2');
+    c.appendChild(h('h2', { text: 'Tier 2: clinical knockouts' }));
+    if (!r.entry.passed) { c.appendChild(h('div', { cls: 'muted', text: 'Not evaluated: the tool was rejected at entry.' })); return; }
+    c.appendChild(h('div', { cls: 'hint', text: 'Each knockout compares the worst-case effective score with a minimum for the ' + r.mode + ' mode. Failing one fails the tool on its own, whatever the merit.' }));
+    c.appendChild(table(['Parameter', 'Minimum', 'Worst case', 'Result', 'Rule'], r.knockouts.map(function (k) {
+      return tr([k.label, td(String(k.threshold), 'num'), td(r2(k.worst), 'num'), td(k.passed ? 'Pass' : 'Fail', 'state'), td(k.rule, 'rule')], k.passed ? 'pass' : 'fail');
+    })));
+  }
+
+  function renderParams(r) {
+    var c = clear(document.getElementById('params-card'));
+    c.classList.toggle('tier-off', !r.entry.passed);
+    c.appendChild(h('h2', { text: 'Tier 3: every parameter, input to points' }));
+    if (!r.entry.passed) { c.appendChild(h('div', { cls: 'muted', text: 'Not evaluated: the tool was rejected at entry.' })); return; }
+    var rows = r.params.map(function (p) {
+      var m = r.merit.rows.filter(function (x) { return x.id === p.id; })[0];
+      return tr([
+        h('td', null, h('strong', { text: p.label }), h('div', { cls: 'hint', text: p.domain + (p.kind === 'derived' ? ', derived from figures' : '') })),
+        h('td', null, h('span', { cls: 'num', text: 'L' + p.magnitude }), h('div', { cls: 'hint', text: p.anchor })),
+        h('td', null, document.createTextNode(p.certaintyLabel), h('div', { cls: 'hint num', text: 'x ' + p.lo.toFixed(2) + ' to ' + p.hi.toFixed(2) })),
+        td(r2(p.worst) + ' to ' + r2(p.best), 'num'),
+        td(String(m.weight), 'num'),
+        td(r1(m.worstPoints) + ' to ' + r1(m.bestPoints), 'num'),
+        td(p.rule + ' ' + p.discount + (p.note ? ' Note: ' + p.note : ''), 'rule')
+      ]);
+    });
+    c.appendChild(table(['Parameter', 'Magnitude and anchor', 'Evidence', 'Effective', 'Weight', 'Points', 'How it was computed'], rows));
+    c.appendChild(h('div', { cls: 'hint num', text: 'Total weight ' + r.merit.totalWeight + '; maximum points ' + (3 * r.merit.totalWeight) +
+      '. Worst-case points ' + r1(r.merit.rows.reduce(function (s, x) { return s + x.worstPoints; }, 0)) +
+      ', best-case points ' + r1(r.merit.rows.reduce(function (s, x) { return s + x.bestPoints; }, 0)) + '.' }));
+  }
+
+  function renderStatic() {
+    document.getElementById('status-line').textContent = N.STATUS_LINE;
+    document.getElementById('placeholder-notice').textContent = N.PLACEHOLDER_NOTICE +
+      ' The preloaded tools are fictional and contain no real company, product or patient data.';
+    var c = clear(document.getElementById('certainty-card'));
+    c.appendChild(h('h2', { text: 'Evidence certainty table' }));
+    c.appendChild(h('div', { cls: 'hint', text: 'Effective score = magnitude x multiplier. The low multiplier feeds the worst case and the high one the best case. Unsupported claims are fixed at 0.' }));
+    c.appendChild(table(['Evidence', 'Low', 'High', 'Meaning'], N.CERTAINTY.map(function (x) {
+      return tr([x.label, td(x.lo.toFixed(2), 'num'), td(x.hi.toFixed(2), 'num'), td(x.description, 'rule')]);
+    })));
+    var w = clear(document.getElementById('weights-card'));
+    w.appendChild(h('h2', { text: 'Weight profiles, knockout minimums and readiness bars' }));
+    w.appendChild(h('div', { cls: 'hint', text: 'Placeholders pending a stakeholder panel. Each profile sums to 100. Clinical weight rises with autonomy; infrastructure weight falls.' }));
+    var heads = ['Parameter'].concat(N.MODES.map(function (m) { return m.label; }));
+    var rows = N.PARAMETERS.map(function (p) {
+      return tr([p.label].concat(N.MODES.map(function (m) { return td(String(N.WEIGHTS[m.id][p.id]), 'num'); })));
+    });
+    N.KNOCKOUTS.forEach(function (k) {
+      var lbl = N.PARAMETERS.filter(function (p) { return p.id === k.param; })[0].label;
+      rows.push(tr([h('td', null, h('strong', { text: 'Knockout: ' + lbl }))].concat(N.MODES.map(function (m) {
+        var v = k.thresholds[m.id]; return td(v === null ? 'none' : 'min ' + v, 'num');
+      }))));
+    });
+    rows.push(tr([h('td', null, h('strong', { text: 'READY bar (worst-case merit)' }))].concat(N.MODES.map(function (m) { return td(String(N.READY_THRESHOLD[m.id]), 'num'); }))));
+    w.appendChild(table(heads, rows));
+    w.appendChild(h('div', { cls: 'hint', text: 'Derived parameter bands: ' + Object.keys(N.DERIVED_CUTS).map(function (k) {
+      var d = N.DERIVED_CUTS[k]; return d.label + ' (' + d.unit + ') level 3 at or below ' + d.cuts[0] + ', 2 at or below ' + d.cuts[1] + ', 1 at or below ' + d.cuts[2];
+    }).join('; ') + '.' }));
+    document.getElementById('foot').textContent = 'Nikasha engine ' + N.VERSION + '. Open-source (MIT), Agravaani Research. ' + N.STATUS_LINE;
+  }
+
+  document.getElementById('reset-btn').addEventListener('click', function () {
+    working[current] = clone(originals[current]); buildPipeline();
+  });
+  window.NikashaUI = { select: function (id) { working.forEach(function (t, i) { if (t.id === id) current = i; }); buildPipeline(); },
+    evaluateCurrent: function () { return N.evaluate(working[current]); } };
+  renderStatic();
+  buildPipeline();
+})();
+</script>
+</body>
+</html>
