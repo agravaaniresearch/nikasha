@@ -32,7 +32,7 @@ npm install && npx playwright install chromium
 npm run check:browser   # opens index.html headless; fails on any console error or wrong verdict
 ```
 
-The GitHub Actions workflow at `.github/workflows/nikasha.yml` runs all of the above on every push.
+The GitHub Actions workflow at `.github/workflows/nikasha.yml` runs all of the above on every push. A second workflow, `.github/workflows/nikasha-tag.yml`, creates the `nikasha-v0.1` tag on main after the tests pass (the build session's git proxy refused tag pushes, so tagging was moved into CI).
 
 ## Layout
 
