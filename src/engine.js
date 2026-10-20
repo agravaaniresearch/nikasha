@@ -548,10 +548,10 @@
       case 'R3': return 'Clinical knockout failed: ' + r.knockouts.filter(function (k) { return !k.passed; })
         .map(function (k) { return k.label + ' worst-case ' + round(k.worst, 2) + ' against a minimum of ' + k.threshold; })
         .join('; ') + '.';
-      case 'R4': return 'Worst-case merit ' + round(m.worst) + ' is at or above the ' + r.mode + ' threshold of ' + r.threshold + '.';
-      case 'R5': return 'Merit band ' + round(m.worst) + ' to ' + round(m.best) + ' straddles the ' + r.mode +
+      case 'R4': return 'Worst-case merit ' + round(m.worst).toFixed(1) + ' is at or above the ' + r.mode + ' threshold of ' + r.threshold + '.';
+      case 'R5': return 'Merit band ' + round(m.worst).toFixed(1) + ' to ' + round(m.best).toFixed(1) + ' straddles the ' + r.mode +
         ' threshold of ' + r.threshold + '. Firmer evidence would decide it.';
-      case 'R6': return 'Even the best-case merit of ' + round(m.best) + ' is below the ' + r.mode + ' threshold of ' + r.threshold + '.';
+      case 'R6': return 'Even the best-case merit of ' + round(m.best).toFixed(1) + ' is below the ' + r.mode + ' threshold of ' + r.threshold + '.';
     }
     return '';
   }
@@ -563,15 +563,17 @@
     lines.push(name + ' (' + (r.tool.modality || 'unknown modality') + ', ' + r.mode + ' mode): ' + r.decision.label.toUpperCase() + '.');
     lines.push('  Why: ' + r.decision.reason);
     if (r.entry.passed) {
-      var lowest = r.params.slice().sort(function (a, b) { return a.worst - b.worst; })
-        .filter(function (p) { return (WEIGHTS[r.mode][p.id] || 0) > 0; }).slice(0, 3);
-      lines.push('  Merit band: ' + round(r.merit.worst) + ' (worst case) to ' + round(r.merit.best) +
+      // Largest shortfalls = most weighted points lost in the worst case.
+      var w = WEIGHTS[r.mode];
+      var lowest = r.params.slice().filter(function (p) { return (w[p.id] || 0) > 0; })
+        .sort(function (a, b) { return w[b.id] * (3 - b.worst) - w[a.id] * (3 - a.worst); }).slice(0, 3);
+      lines.push('  Merit band: ' + round(r.merit.worst).toFixed(1) + ' (worst case) to ' + round(r.merit.best).toFixed(1) +
         ' (best case) out of 100; READY needs a worst case of at least ' + r.threshold + '.');
       if (r.figures && r.figures.valid) {
         lines.push('  Carbon footprint: about ' + Math.round(r.figures.co2KgPerYear) + ' kg CO2e per year (' +
           round(r.figures.gco2PerStudy) + ' g per study); running cost about INR ' + Math.round(r.figures.dailyCost) + ' per day.');
       }
-      lines.push('  Weakest points: ' + lowest.map(function (p) {
+      lines.push('  Largest shortfalls: ' + lowest.map(function (p) {
         return p.label + ' (level ' + p.magnitude + ', ' + p.certaintyLabel + ')';
       }).join('; ') + '.');
       if (r.informationalOnly) lines.push('  Later tiers were computed for information only; they do not change the verdict.');

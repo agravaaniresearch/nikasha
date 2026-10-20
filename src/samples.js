@@ -113,7 +113,7 @@
         source_access: { magnitude: 3, certainty: 'live_demo', note: 'Synthetic: open-source repository with weights.' }
       },
       infra: {
-        studiesPerDay: 80, energyWhPerStudy: 15, idleWatts: 40, gridIntensity: 710, tariffPerKWh: 8,
+        studiesPerDay: 80, energyWhPerStudy: 15, idleWatts: 55, gridIntensity: 710, tariffPerKWh: 8,
         feePerStudy: 40, cloudPerDay: 0, storageTB: 3, storagePerTBMonth: 1500, retrievalPerMonth: 500,
         upfront: 500000, annualMaintenance: 120000
       }
