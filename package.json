@@ -1,18 +1,29 @@
 {
   "name": "nikasha",
-  "version": "0.1.0",
-  "description": "Open-source readiness evaluation framework for CT and MRI diagnostic AI tools. Working example on synthetic data.",
+  "version": "0.2.0",
+  "description": "Open-source readiness and affordability evaluation for CT and MRI diagnostic AI tools, connected to the Vyaya cost calculator. Working example on synthetic data.",
   "license": "MIT",
   "private": true,
   "scripts": {
     "build": "node build.js",
     "check:build": "node build.js --check",
-    "test": "node --test test/engine.test.js test/build.test.js",
+    "test": "node --test test/schema.test.js test/golden.test.js test/engine.test.js test/cost.test.js test/contract.test.js test/invariants.test.js test/failure.test.js test/adversarial.test.js test/build.test.js",
+    "test:coverage": "node --test --experimental-test-coverage --test-coverage-include=src/**/*.js test/*.test.js",
     "check:browser": "node test/browser-check.js",
-    "demo": "node demo.js"
+    "screenshots": "node test/browser-check.js --screenshots",
+    "demo": "node demo.js",
+    "serve": "npx --yes http-server -p 8080 -c-1 .",
+    "verify": "npm run check:build && npm test && npm run demo && npm run check:browser"
   },
   "devDependencies": {
+    "ajv": "^8.20.0",
     "playwright": "1.56.0"
   },
-  "engines": { "node": ">=18" }
+  "engines": {
+    "node": ">=18"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/agravaaniresearch/nikasha"
+  }
 }

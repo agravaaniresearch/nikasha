@@ -1,0 +1,35 @@
+name: tag
+
+# Creates the release tag named in package.json (nikasha-v<version>) on main
+# once CI passes. Idempotent: does nothing if the tag already exists. Tagging
+# happens here because the build sessions cannot push tags directly.
+
+on:
+  workflow_run:
+    workflows: [ci]
+    types: [completed]
+    branches: [main]
+
+permissions:
+  contents: write
+
+jobs:
+  tag:
+    if: github.event.workflow_run.conclusion == 'success'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.workflow_run.head_sha }}
+          fetch-depth: 0
+      - name: Tag if missing
+        run: |
+          TAG="nikasha-v$(node -p "require('./package.json').version")"
+          if git ls-remote --exit-code --tags origin "refs/tags/$TAG" >/dev/null; then
+            echo "$TAG already exists; nothing to do."
+          else
+            git config user.name "github-actions[bot]"
+            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            git tag -a "$TAG" -m "Nikasha $TAG: working example on synthetic data. Not clinically or academically validated."
+            git push origin "refs/tags/$TAG"
+          fi
