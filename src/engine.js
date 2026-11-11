@@ -1,11 +1,14 @@
 /*
- * Nikasha scoring engine v0.1
+ * Nikasha scoring engine v0.2
  * ---------------------------------------------------------------------------
- * Single source of truth for every rule, table and threshold in Nikasha.
- * The browser tool (index.html) embeds this file verbatim at build time and
- * the Node tests require it directly, so the two can never drift apart.
- * A test (test/build.test.js) fails if the copy inside index.html differs
- * from this file by a single byte.
+ * The rules live in data/framework.json, validated by
+ * schema/framework.schema.json. This file only applies them. Change a weight,
+ * threshold, anchor or certainty multiplier in the data file, not here.
+ *
+ * Infrastructure figures come from a deployment cost profile
+ * (schema/cost-profile.schema.json), built by src/cost.js from the pinned
+ * Vyaya engine and data, or supplied ready-made on tool.costProfile.
+ * Affordability is reported on its own axis and never changes readiness.
  *
  * Working example on synthetic data. Not clinically or academically validated.
  * Weights and thresholds are placeholders pending a stakeholder panel, and the
@@ -13,112 +16,34 @@
  */
 (function (root, factory) {
   if (typeof module === 'object' && module.exports) {
-    module.exports = factory();
+    module.exports = factory(require('../data/framework.json'), require('./cost.js'));
   } else {
-    root.Nikasha = factory();
+    root.Nikasha = factory(root.NikashaData.framework, root.NikashaCost);
   }
-})(typeof self !== 'undefined' ? self : this, function () {
+})(typeof self !== 'undefined' ? self : this, function (FW, Cost) {
   'use strict';
 
-  var VERSION = '0.1.0';
+  var VERSION = FW.meta.version;
+  var STATUS_LINE = FW.meta.status;
+  var PLACEHOLDER_NOTICE = FW.meta.placeholderNotice;
 
-  var STATUS_LINE = 'Working example on synthetic data. Not clinically or academically validated.';
-  var PLACEHOLDER_NOTICE = 'All weights and thresholds are placeholders pending a stakeholder panel. ' +
-    'Nikasha has not been calibrated against real adoption outcomes.';
-
-  // -------------------------------------------------------------------------
-  // Evidence certainty table (published). Effective score = magnitude x
-  // multiplier. Each level carries a range: the low end feeds the worst case,
-  // the high end feeds the best case. Unsupported claims are fixed at zero.
-  // -------------------------------------------------------------------------
-  var CERTAINTY = [
-    { id: 'clinical_use', label: 'Actual clinical use', lo: 0.90, hi: 1.00,
-      description: 'Deployed in routine care with audited local results.' },
-    { id: 'peer_reviewed', label: 'Peer-reviewed publication', lo: 0.75, hi: 0.95,
-      description: 'Published in a peer-reviewed journal. Preprints and arXiv do not count here.' },
-    { id: 'live_demo', label: 'Live demonstration', lo: 0.55, hi: 0.80,
-      description: 'Shown working on cases chosen by the assessor, not by the vendor.' },
-    { id: 'preprint', label: 'Preprint or arXiv', lo: 0.25, hi: 0.50,
-      description: 'Public but not peer reviewed.' },
-    { id: 'vendor_claim', label: 'Vendor document', lo: 0.10, hi: 0.30,
-      description: 'White paper, brochure, slide deck or internal report.' },
-    { id: 'unsupported', label: 'Unsupported claim', lo: 0.00, hi: 0.00,
-      description: 'No evidence offered. Always scores 0.' }
-  ];
-
+  var CERTAINTY = FW.certainty;
   var CERTAINTY_BY_ID = {};
   CERTAINTY.forEach(function (c) { CERTAINTY_BY_ID[c.id] = c; });
 
-  // -------------------------------------------------------------------------
-  // Autonomy modes. Scrutiny rises from administrative to autonomous through
-  // three levers: clinical weights, knockout thresholds and the readiness bar.
-  // -------------------------------------------------------------------------
-  var MODES = [
-    { id: 'administrative', label: 'Administrative',
-      description: 'Affects workflow only (worklist order, protocol suggestion). A clinician reads every study unaided.' },
-    { id: 'advisory', label: 'Advisory',
-      description: 'Shows findings to a clinician who reads the study and decides.' },
-    { id: 'triage', label: 'Triage',
-      description: 'Decides which studies are read first. A missed finding can delay care.' },
-    { id: 'autonomous', label: 'Autonomous',
-      description: 'Issues a result that some studies receive with no clinician read.' }
-  ];
+  var MODES = FW.modes;
   var MODE_IDS = MODES.map(function (m) { return m.id; });
+  var READY_THRESHOLD = FW.readyThreshold;
 
-  // Minimum worst-case merit (0-100) for READY, per mode.
-  var READY_THRESHOLD = { administrative: 55, advisory: 60, triage: 68, autonomous: 75 };
-
-  // -------------------------------------------------------------------------
-  // Entry: scope check on modality.
-  // -------------------------------------------------------------------------
-  var MODALITIES = [
-    { id: 'CT', label: 'CT', inScope: true },
-    { id: 'MRI', label: 'MRI', inScope: true },
-    { id: 'XRAY', label: 'X-ray (plain radiograph)', inScope: false,
-      reason: 'X-ray tools are out of scope. Nikasha v0.1 defines its false-negative and ' +
-        'false-positive anchors for cross-sectional CT and MRI reads. A projection radiograph has ' +
-        'different lesion conspicuity, reference standards and error profiles, so a score against ' +
-        'these anchors would not mean anything.' },
-    { id: 'MAMMOGRAPHY', label: 'Mammography', inScope: false,
-      reason: 'Mammography is an X-ray technique and is out of scope for the same reason as plain ' +
-        'radiography: the CT and MRI error anchors do not transfer to projection imaging.' },
-    { id: 'ULTRASOUND', label: 'Ultrasound', inScope: false,
-      reason: 'Ultrasound is out of scope in v0.1. Only CT and MRI diagnostic tools are assessed.' },
-    { id: 'PET', label: 'PET or nuclear medicine', inScope: false,
-      reason: 'PET and nuclear medicine are out of scope in v0.1. Only CT and MRI diagnostic tools are assessed.' }
-  ];
+  var MODALITIES = FW.modalities;
   var MODALITY_BY_ID = {};
   MODALITIES.forEach(function (m) { MODALITY_BY_ID[m.id] = m; });
 
-  // -------------------------------------------------------------------------
-  // Tier 1: legal gates. Each must be documented as met. "unknown" fails,
-  // because an unsupported claim counts as nothing.
-  // -------------------------------------------------------------------------
-  var GATE_VALUES = ['met', 'not_met', 'unknown'];
-  var GATES = [
-    { id: 'regulatory', label: 'Regulatory authorisation',
-      description: 'Medical-device authorisation in the deploying jurisdiction covers this intended use.',
-      modes: MODE_IDS },
-    { id: 'data_protection', label: 'Data protection',
-      description: 'Processing of patient data complies with applicable law (in India, the DPDP Act 2023).',
-      modes: MODE_IDS },
-    { id: 'intended_use', label: 'Intended use matches deployment',
-      description: 'The autonomy mode being assessed sits inside the authorised intended use.',
-      modes: MODE_IDS },
-    { id: 'accountability', label: 'Clinical accountability',
-      description: 'A named clinical owner and an incident-reporting route exist at the deploying site.',
-      modes: MODE_IDS },
-    { id: 'unsupervised_authorisation', label: 'Unsupervised reporting authorised',
-      description: 'The authorisation explicitly permits results issued with no clinician read.',
-      modes: ['autonomous'] }
-  ];
+  var GATE_VALUES = FW.gateValues;
+  var GATES = FW.gates.map(function (g) {
+    return { id: g.id, label: g.label, description: g.description, modes: g.modes === 'all' ? MODE_IDS.slice() : g.modes };
+  });
 
-  // -------------------------------------------------------------------------
-  // Parameters. "assessed" parameters take a magnitude (0-3) chosen against
-  // written anchors. "derived" parameters compute their magnitude from the
-  // infrastructure figures with a stated rule; their certainty is still
-  // assessed (how do we know the figures?).
-  // -------------------------------------------------------------------------
   function bandRule(metricLabel, unit, cuts) {
     return [
       metricLabel + ' above ' + fmtNum(cuts[2]) + ' ' + unit + ', or inputs missing.',
@@ -128,197 +53,42 @@
     ];
   }
 
-  var DERIVED_CUTS = {
-    electricity: { figure: 'whPerStudy', label: 'Energy per study', unit: 'Wh', cuts: [20, 60, 150] },
-    carbon: { figure: 'gco2PerStudy', label: 'Emissions per study', unit: 'g CO2e', cuts: [15, 45, 110] },
-    daily_cost: { figure: 'dailyCostPerStudy', label: 'Running cost per study', unit: 'INR', cuts: [25, 60, 120] },
-    storage_cost: { figure: 'storageCostPerStudy', label: 'Storage and retrieval cost per study', unit: 'INR', cuts: [2, 6, 15] },
-    tco: { figure: 'tcoPerStudy', label: 'Five-year cost of ownership per study', unit: 'INR', cuts: [80, 180, 350] }
-  };
-
-  var PARAMETERS = [
-    { id: 'sensitivity', label: 'Sensitivity (false negatives)', domain: 'clinical', kind: 'assessed',
-      anchors: [
-        'Not reported, sensitivity below 85%, or lower 95% CI bound below 80%.',
-        'Sensitivity 85 to 89% with lower 95% CI bound at least 80%.',
-        'Sensitivity 90 to 94% with lower 95% CI bound at least 85%.',
-        'Sensitivity at least 95% with lower 95% CI bound at least 90%, reported per finding type.'
-      ] },
-    { id: 'specificity', label: 'Specificity (false positives)', domain: 'clinical', kind: 'assessed',
-      anchors: [
-        'Not reported, specificity below 80%, or no false-positive rate per 100 studies.',
-        'Specificity 80 to 87%, false positives stated per 100 studies.',
-        'Specificity 88 to 93%, with false positives per 100 studies and the review workload they create.',
-        'Specificity at least 94%, false positives per 100 studies, and a review of what the false positives were.'
-      ] },
-    { id: 'external_validation', label: 'External validation', domain: 'clinical', kind: 'assessed',
-      anchors: [
-        'Internal or development-set results only.',
-        'One external site, retrospective.',
-        'Two or more external sites, or one prospective external study.',
-        'Multi-site prospective validation on scanners and patients like those at the deploying site.'
-      ] },
-    { id: 'subgroup_performance', label: 'Subgroup and scanner robustness', domain: 'clinical', kind: 'assessed',
-      anchors: [
-        'No subgroup or scanner-level results.',
-        'Results split by one factor, such as scanner vendor or age band.',
-        'Results split by scanner vendor, field strength or slice thickness, and by age and sex.',
-        'As level 2, plus a failure-mode analysis showing where the tool is weak and what it does there.'
-      ] },
-    { id: 'human_oversight', label: 'Human oversight and override', domain: 'clinical', kind: 'assessed',
-      anchors: [
-        'Output cannot be overridden or audited; no record of what the tool showed.',
-        'Clinician can override and outputs are logged.',
-        'Override and logging, plus the image region or evidence behind each finding is shown.',
-        'As level 2, plus calibrated confidence, abstention on low-confidence cases and an audit report.'
-      ] },
-    { id: 'post_market_monitoring', label: 'Post-deployment monitoring', domain: 'clinical', kind: 'assessed',
-      anchors: [
-        'No monitoring after deployment.',
-        'Vendor collects complaints only.',
-        'Periodic audit against local reference reads.',
-        'Continuous drift monitoring with preset thresholds that trigger review or withdrawal.'
-      ] },
-    { id: 'workflow_integration', label: 'Workflow integration', domain: 'clinical', kind: 'assessed',
-      anchors: [
-        'Separate login and manual upload; no PACS or RIS link.',
-        'DICOM send and receive, but results shown outside PACS.',
-        'Results returned into PACS as DICOM structured report or secondary capture.',
-        'As level 2, plus worklist integration and structured report fields.'
-      ] },
-    { id: 'deployment', label: 'Deployment (edge or cloud)', domain: 'infrastructure', kind: 'assessed',
-      anchors: [
-        'Cloud only, hosted outside the country, no offline fallback.',
-        'Cloud only, hosted in-country.',
-        'Hybrid: inference on site, cloud used only for updates or analytics.',
-        'Fully on site (edge); works through an internet outage and no image leaves the hospital.'
-      ] },
-    { id: 'electricity', label: 'Electricity use', domain: 'infrastructure', kind: 'derived',
-      anchors: bandRule('Energy per study', 'Wh', DERIVED_CUTS.electricity.cuts) },
-    { id: 'carbon', label: 'Carbon footprint', domain: 'infrastructure', kind: 'derived',
-      anchors: bandRule('Emissions per study', 'g CO2e', DERIVED_CUTS.carbon.cuts) },
-    { id: 'storage_cost', label: 'Storage and retrieval cost', domain: 'infrastructure', kind: 'derived',
-      anchors: bandRule('Storage and retrieval cost per study', 'INR', DERIVED_CUTS.storage_cost.cuts) },
-    { id: 'daily_cost', label: 'Daily running cost', domain: 'infrastructure', kind: 'derived',
-      anchors: bandRule('Running cost per study', 'INR', DERIVED_CUTS.daily_cost.cuts) },
-    { id: 'tco', label: 'Total cost of ownership', domain: 'infrastructure', kind: 'derived',
-      anchors: bandRule('Five-year cost of ownership per study', 'INR', DERIVED_CUTS.tco.cuts) },
-    { id: 'update_process', label: 'Update process', domain: 'infrastructure', kind: 'assessed',
-      anchors: [
-        'Silent or unannounced model updates.',
-        'Vendor-pushed updates with release notes.',
-        'Versioned updates scheduled by the site, with change notes and performance deltas.',
-        'As level 2, plus local re-validation before go-live and one-step rollback.'
-      ] },
-    { id: 'source_access', label: 'Source code and algorithm access', domain: 'infrastructure', kind: 'assessed',
-      anchors: [
-        'Closed source; no description of the algorithm.',
-        'Closed source; reviewable description of architecture and training data.',
-        'Source or weights available to auditors under a restrictive licence.',
-        'Open source under an OSI-approved licence, with weights and training recipe.'
-      ] }
-  ];
+  var DERIVED_CUTS = FW.derivedCuts;
+  // Derived parameters carry no written anchors in the data: their anchors are
+  // generated from the band cuts so the two can never disagree.
+  var PARAMETERS = FW.parameters.map(function (p) {
+    var o = { id: p.id, label: p.label, domain: p.domain, kind: p.kind };
+    if (p.kind === 'derived') {
+      var d = DERIVED_CUTS[p.id];
+      o.anchors = bandRule(d.label, d.unit, d.cuts);
+    } else {
+      o.anchors = p.anchors.slice();
+    }
+    return o;
+  });
   var PARAM_BY_ID = {};
   PARAMETERS.forEach(function (p) { PARAM_BY_ID[p.id] = p; });
 
-  // -------------------------------------------------------------------------
-  // Tier 3 weight profiles (placeholders). Each profile sums to 100.
-  // -------------------------------------------------------------------------
-  var WEIGHTS = {
-    administrative: { sensitivity: 8, specificity: 8, external_validation: 6, subgroup_performance: 4,
-      human_oversight: 6, post_market_monitoring: 4, workflow_integration: 14, deployment: 8,
-      electricity: 6, carbon: 6, storage_cost: 7, daily_cost: 7, tco: 10, update_process: 4, source_access: 2 },
-    advisory: { sensitivity: 14, specificity: 12, external_validation: 10, subgroup_performance: 7,
-      human_oversight: 9, post_market_monitoring: 6, workflow_integration: 10, deployment: 5,
-      electricity: 3, carbon: 4, storage_cost: 4, daily_cost: 4, tco: 6, update_process: 3, source_access: 3 },
-    triage: { sensitivity: 18, specificity: 14, external_validation: 12, subgroup_performance: 9,
-      human_oversight: 9, post_market_monitoring: 8, workflow_integration: 8, deployment: 4,
-      electricity: 2, carbon: 3, storage_cost: 3, daily_cost: 2, tco: 4, update_process: 2, source_access: 2 },
-    autonomous: { sensitivity: 20, specificity: 16, external_validation: 14, subgroup_performance: 11,
-      human_oversight: 10, post_market_monitoring: 10, workflow_integration: 4, deployment: 3,
-      electricity: 1, carbon: 2, storage_cost: 2, daily_cost: 1, tco: 3, update_process: 3, source_access: 0 }
-  };
-
-  // -------------------------------------------------------------------------
-  // Tier 2 clinical knockouts. A knockout compares the WORST-CASE effective
-  // score with a mode-specific minimum. null = not a knockout in that mode.
-  // -------------------------------------------------------------------------
-  var KNOCKOUTS = [
-    { param: 'sensitivity',
-      thresholds: { administrative: 1.0, advisory: 1.5, triage: 2.0, autonomous: 2.5 } },
-    { param: 'specificity',
-      thresholds: { administrative: 1.0, advisory: 1.25, triage: 1.5, autonomous: 2.25 } },
-    { param: 'external_validation',
-      thresholds: { administrative: null, advisory: null, triage: 1.5, autonomous: 2.0 } },
-    { param: 'post_market_monitoring',
-      thresholds: { administrative: null, advisory: null, triage: null, autonomous: 1.5 } }
-  ];
-
-  // -------------------------------------------------------------------------
-  // Infrastructure inputs and the figures computed from them.
-  // -------------------------------------------------------------------------
-  var INFRA_FIELDS = [
-    { id: 'studiesPerDay', label: 'Studies processed per day', unit: 'studies' },
-    { id: 'energyWhPerStudy', label: 'Compute energy per study', unit: 'Wh' },
-    { id: 'idleWatts', label: 'Idle power of dedicated hardware', unit: 'W' },
-    { id: 'gridIntensity', label: 'Grid carbon intensity where compute runs', unit: 'g CO2e/kWh' },
-    { id: 'tariffPerKWh', label: 'Electricity tariff', unit: 'INR/kWh' },
-    { id: 'feePerStudy', label: 'Licence fee per study', unit: 'INR' },
-    { id: 'cloudPerDay', label: 'Cloud compute charge per day', unit: 'INR' },
-    { id: 'storageTB', label: 'Storage held for the tool', unit: 'TB' },
-    { id: 'storagePerTBMonth', label: 'Storage price', unit: 'INR/TB/month' },
-    { id: 'retrievalPerMonth', label: 'Retrieval and egress charges', unit: 'INR/month' },
-    { id: 'upfront', label: 'Upfront licence and hardware', unit: 'INR' },
-    { id: 'annualMaintenance', label: 'Annual maintenance and support', unit: 'INR/year' }
-  ];
+  var WEIGHTS = FW.weights;
+  var KNOCKOUTS = FW.knockouts;
+  var INFRA_FIELDS = FW.infraFields;
+  var DECISION_ROWS = FW.decisionRows;
 
   function num(v) {
     var n = typeof v === 'number' ? v : parseFloat(v);
     return isFinite(n) ? n : NaN;
   }
 
+  // v0.1 entry point, kept for callers and tests. Same formulas, now in cost.js.
   function computeFigures(infra) {
-    infra = infra || {};
-    var i = {};
-    var missing = [];
-    INFRA_FIELDS.forEach(function (f) {
-      var n = num(infra[f.id]);
-      if (isNaN(n) || n < 0) { missing.push(f.id); n = NaN; }
-      i[f.id] = n;
-    });
-    if (!(i.studiesPerDay > 0)) { if (missing.indexOf('studiesPerDay') < 0) missing.push('studiesPerDay'); }
-    if (missing.length) {
-      return { valid: false, missing: missing };
-    }
-    var n = i.studiesPerDay;
-    var kwhPerDay = (n * i.energyWhPerStudy + i.idleWatts * 24) / 1000;
-    var whPerStudy = (kwhPerDay * 1000) / n;
-    var co2KgPerYear = (kwhPerDay * 365 * i.gridIntensity) / 1000;
-    var gco2PerStudy = (whPerStudy / 1000) * i.gridIntensity;
-    var dailyCost = i.feePerStudy * n + kwhPerDay * i.tariffPerKWh + i.cloudPerDay;
-    var storageMonthly = i.storageTB * i.storagePerTBMonth + i.retrievalPerMonth;
-    var tco5y = i.upfront + i.annualMaintenance * 5 + dailyCost * 365 * 5 + storageMonthly * 60;
-    return {
-      valid: true,
-      missing: [],
-      kwhPerDay: kwhPerDay,
-      whPerStudy: whPerStudy,
-      co2KgPerYear: co2KgPerYear,
-      gco2PerStudy: gco2PerStudy,
-      dailyCost: dailyCost,
-      dailyCostPerStudy: dailyCost / n,
-      storageMonthly: storageMonthly,
-      storageCostPerStudy: storageMonthly / (n * 30),
-      tco5y: tco5y,
-      tcoPerStudy: tco5y / (n * 365 * 5),
-      formulas: {
-        kwhPerDay: '(studies/day x Wh/study + idle W x 24) / 1000',
-        co2KgPerYear: 'kWh/day x 365 x grid g CO2e/kWh / 1000',
-        dailyCost: 'fee/study x studies/day + kWh/day x tariff + cloud/day',
-        storageMonthly: 'TB x price/TB/month + retrieval/month',
-        tco5y: 'upfront + maintenance x 5 + daily cost x 365 x 5 + storage/month x 60'
-      }
-    };
+    var p = Cost.buildProfile({ infra: infra || {} });
+    return p.figures;
+  }
+
+  // Read only what the assessor actually wrote: never a value inherited
+  // through the prototype chain of the tool document.
+  function own(o, k) {
+    return o && typeof o === 'object' && Object.prototype.hasOwnProperty.call(o, k) ? o[k] : undefined;
   }
 
   function bandMagnitude(value, cuts) {
@@ -333,7 +103,7 @@
   // Scoring helpers.
   // -------------------------------------------------------------------------
   function effectiveScore(magnitude, certaintyId) {
-    var c = CERTAINTY_BY_ID[certaintyId] || CERTAINTY_BY_ID.unsupported;
+    var c = Object.prototype.hasOwnProperty.call(CERTAINTY_BY_ID, certaintyId) ? CERTAINTY_BY_ID[certaintyId] : CERTAINTY_BY_ID.unsupported;
     var m = validMagnitude(magnitude) ? magnitude : 0;
     return { worst: m * c.lo, best: m * c.hi, lo: c.lo, hi: c.hi, certainty: c.id };
   }
@@ -355,7 +125,7 @@
     input = input || {};
     var warnings = [];
     var certainty = input.certainty;
-    if (!CERTAINTY_BY_ID[certainty]) {
+    if (!Object.prototype.hasOwnProperty.call(CERTAINTY_BY_ID, certainty)) {
       if (certainty !== undefined) warnings.push('Unknown certainty "' + certainty + '" treated as unsupported.');
       certainty = 'unsupported';
     }
@@ -364,7 +134,7 @@
       var spec = DERIVED_CUTS[param.id];
       var value = figures && figures.valid ? figures[spec.figure] : NaN;
       magnitude = bandMagnitude(value, spec.cuts);
-      figure = { name: spec.label, value: value, unit: spec.unit };
+      figure = { name: spec.label, value: isFinite(value) ? value : null, unit: spec.unit };
       rule = (isFinite(value)
         ? spec.label + ' = ' + round(value, 2) + ' ' + spec.unit + ', which falls in level ' + magnitude + '.'
         : 'Infrastructure inputs missing, so magnitude is 0.');
@@ -427,7 +197,7 @@
   function evaluateGates(tool, mode) {
     var gates = tool.gates || {};
     return GATES.filter(function (g) { return g.modes.indexOf(mode) >= 0; }).map(function (g) {
-      var v = gates[g.id];
+      var v = own(gates, g.id);
       if (GATE_VALUES.indexOf(v) < 0) v = 'unknown';
       return {
         id: g.id, label: g.label, description: g.description, value: v, passed: v === 'met',
@@ -480,6 +250,9 @@
       knockouts: [],
       params: [],
       figures: null,
+      costProfile: null,
+      affordability: null,
+      profileProblems: [],
       merit: null,
       decision: null,
       decisionTable: [],
@@ -488,7 +261,7 @@
     };
 
     // Entry
-    var mod = MODALITY_BY_ID[tool.modality];
+    var mod = Object.prototype.hasOwnProperty.call(MODALITY_BY_ID, tool.modality) ? MODALITY_BY_ID[tool.modality] : null;
     if (!mod) {
       result.entry = { passed: false, modality: tool.modality,
         reason: 'Modality "' + tool.modality + '" is not recognised. Only CT and MRI diagnostic tools are assessed.' };
@@ -507,9 +280,12 @@
       result.gates = evaluateGates(tool, mode);
       result.tiersEvaluated.push('legal');
       // Score parameters (needed by Tier 2 and Tier 3)
-      result.figures = computeFigures(tool.infra);
+      var prof = profileFor(tool, mode, result);
+      result.costProfile = prof;
+      result.figures = prof && prof.figures ? prof.figures : { valid: false, missing: ['costProfile'] };
+      result.affordability = prof ? prof.affordability : null;
       var inputs = tool.params || {};
-      result.params = PARAMETERS.map(function (p) { return scoreParameter(p, inputs[p.id], result.figures); });
+      result.params = PARAMETERS.map(function (p) { return scoreParameter(p, own(inputs, p.id), result.figures); });
       var byId = {};
       result.params.forEach(function (p) { byId[p.id] = p; });
       // Tier 2
@@ -537,6 +313,20 @@
     var row = DECISION_ROWS.filter(function (r) { return r.id === matched; })[0];
     result.decision = { row: row.id, verdict: row.verdict, label: row.label, reason: decisionReason(result, row.id) };
     return result;
+  }
+
+  // A supplied profile (for example exported from Vyaya) wins over computing one.
+  function profileFor(tool, mode, result) {
+    if (tool.costProfile) {
+      var chk = Cost.acceptProfile(tool.costProfile);
+      result.profileProblems = chk.problems;
+      if (chk.ok) return tool.costProfile;
+      var p = JSON.parse(JSON.stringify(tool.costProfile));
+      p.figures = { valid: false, missing: ['costProfile'] };
+      return p;
+    }
+    try { return Cost.buildProfile(tool, { mode: mode }); }
+    catch (e) { result.profileProblems = ['Cost model failed: ' + e.message]; return null; }
   }
 
   function decisionReason(r, rowId) {
@@ -576,6 +366,16 @@
       lines.push('  Largest shortfalls: ' + lowest.map(function (p) {
         return p.label + ' (level ' + p.magnitude + ', ' + p.certaintyLabel + ')';
       }).join('; ') + '.');
+      if (r.affordability) {
+        lines.push('  Affordability (separate axis, does not change readiness): ' + r.affordability.label + '.');
+        if (r.costProfile && r.costProfile.total) {
+          var cp = r.costProfile;
+          lines.push('    Cost per study with the tool INR ' + Math.round(cp.total.best) + ' (best) to ' + Math.round(cp.total.worst) +
+            ' (worst), against INR ' + Math.round(cp.manual.worst) + ' for the same service without it (reading plus errors).');
+          lines.push('    Compute and power are ' + Math.round(cp.computeShare.worst * 100) + '% of the worst-case bill; reading time is ' +
+            Math.round(cp.layers.filter(function (l) { return l.id === 'reading'; })[0].perStudy.worst / cp.total.worst * 100) + '%.');
+        }
+      }
       if (r.informationalOnly) lines.push('  Later tiers were computed for information only; they do not change the verdict.');
     }
     return lines.join('\n');
@@ -598,6 +398,8 @@
     DERIVED_CUTS: DERIVED_CUTS,
     DECISION_ROWS: DECISION_ROWS,
     computeFigures: computeFigures,
+    Cost: Cost,
+    FRAMEWORK: FW,
     bandMagnitude: bandMagnitude,
     effectiveScore: effectiveScore,
     evaluate: evaluate,

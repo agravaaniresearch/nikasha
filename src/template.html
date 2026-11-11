@@ -137,14 +137,31 @@ td.rule { color: var(--muted); font-size: 12px; min-width: 220px; }
 details summary { cursor: pointer; font-weight: 600; }
 pre.json { font-family: var(--f-mono); font-size: 11px; background: var(--sunk); padding: 10px; border-radius: 4px; overflow-x: auto; max-height: 420px; }
 footer { max-width: 1440px; margin: 20px auto 0; color: var(--muted); font-size: 12px; }
-@media (prefers-reduced-motion: no-preference) { .bandfill { transition: x 0.25s, width 0.25s; } }
+@media (prefers-reduced-motion: no-preference) { .bandfill { transition: x 0.25s, width 0.25s; } .lbar i { transition: width 0.25s; } }
+/* Affordability: its own axis, styled apart from the readiness verdict. */
+.afford { border-left: 6px solid var(--nil); }
+.afford.SAVES { border-left-color: var(--ok); }
+.afford.EVIDENCE_DEPENDENT { border-left-color: var(--warn); }
+.afford.COSTS_MORE { border-left-color: var(--bad); }
+.apill { display: inline-block; font-weight: 700; font-size: 12px; letter-spacing: 0.05em; padding: 3px 10px; border-radius: 999px; background: var(--nil-soft); color: var(--nil); }
+.apill.SAVES { background: var(--ok-soft); color: var(--ok); }
+.apill.EVIDENCE_DEPENDENT { background: var(--warn-soft); color: var(--warn); }
+.apill.COSTS_MORE { background: var(--bad-soft); color: var(--bad); }
+.layers { display: grid; gap: 6px; }
+.layer { display: grid; grid-template-columns: minmax(150px, 1.2fr) 2fr 160px; gap: 10px; align-items: center; font-size: 13px; }
+.layer .num { text-align: right; }
+.lbar { height: 12px; background: var(--sunk); border-radius: 3px; overflow: hidden; }
+.lbar i { display: block; height: 100%; background: var(--accent); }
+.lbar i.compute { background: var(--warn); }
+.drivers li { margin-bottom: 4px; }
+.separate { font-size: 12px; font-weight: 600; color: var(--accent); }
 </style>
 </head>
 <body>
 <header class="top">
   <div class="brand">
     <h1>Nikasha</h1>
-    <span class="gloss">nikasha, the touchstone that tests gold: a readiness bench for CT and MRI diagnostic AI</span>
+    <span class="gloss">nikasha, the touchstone that tests gold: a readiness and affordability bench for CT and MRI diagnostic AI</span>
   </div>
   <div class="notices">
     <div class="notice status" id="status-line"></div>
@@ -183,6 +200,11 @@ footer { max-width: 1440px; margin: 20px auto 0; color: var(--muted); font-size:
       <div class="stage-head"><span class="step">05</span><h2>Infrastructure inputs</h2></div>
       <div id="infra-fields" class="row2"></div>
     </div>
+    <div class="stage">
+      <div class="stage-head"><span class="step">06</span><h2>Cost and performance (Vyaya bridge)</h2></div>
+      <div class="hint">These feed the affordability axis only. They never change the readiness verdict. The state picks a landed tariff from Vyaya's table; any input left at its default keeps that default's provenance status.</div>
+      <div id="cost-fields" class="row2"></div>
+    </div>
   </section>
 
   <section class="dash" aria-label="Scoring dashboard" aria-live="polite">
@@ -191,6 +213,7 @@ footer { max-width: 1440px; margin: 20px auto 0; color: var(--muted); font-size:
       <div class="panel" id="carbon-card"></div>
     </div>
     <div class="panel band" id="band-card"></div>
+    <div class="panel afford" id="afford-card"></div>
     <div class="panel" id="modes-card"></div>
     <div class="panel" id="decision-card"></div>
     <div class="panel" id="entry-card"></div>
@@ -204,17 +227,24 @@ footer { max-width: 1440px; margin: 20px auto 0; color: var(--muted); font-size:
 </main>
 <footer id="foot"></footer>
 
+<script id="nikasha-data">
+/*@@DATA@@*/
+</script>
+<script id="vyaya-engine">
+/*@@VYAYA@@*/
+</script>
+<script id="nikasha-cost">
+/*@@COST@@*/
+</script>
 <script id="nikasha-engine">
 /*@@ENGINE@@*/
-</script>
-<script id="nikasha-samples">
-/*@@SAMPLES@@*/
 </script>
 <script id="nikasha-ui">
 (function () {
   'use strict';
   var N = window.Nikasha;
-  var SAMPLES = window.NikashaSamples.SAMPLES;
+  var SAMPLES = window.NikashaData.samples.samples;
+  var D = window.NikashaData;
   var r1 = function (x) { return N.round(x, 1).toFixed(1); };
   var r2 = function (x) { return N.round(x, 2).toFixed(2); };
   var inr = function (x) { return 'INR ' + Math.round(x).toLocaleString('en-IN'); };
@@ -225,9 +255,9 @@ footer { max-width: 1440px; margin: 20px auto 0; color: var(--muted); font-size:
     N.PARAMETERS.forEach(function (p) { params[p.id] = p.kind === 'derived' ? { certainty: 'unsupported' } : { magnitude: 0, certainty: 'unsupported' }; });
     var infra = {};
     N.INFRA_FIELDS.forEach(function (f) { infra[f.id] = 0; });
-    infra.gridIntensity = 710; infra.tariffPerKWh = 8; infra.studiesPerDay = 50;
+    infra.gridIntensity = 727; infra.tariffPerKWh = 9; infra.studiesPerDay = 50;
     return { id: 'blank', name: 'New tool', fictional: true, modality: 'CT', finding: '', mode: 'advisory',
-      summary: 'Blank entry. Everything starts unsupported and scores 0.', gates: {}, params: params, infra: infra };
+      summary: 'Blank entry. Everything starts unsupported and scores 0.', gates: {}, params: params, infra: infra, cost: {}, performance: {} };
   }
 
   var originals = SAMPLES.map(clone).concat([blankTool()]);
@@ -328,7 +358,84 @@ footer { max-width: 1440px; margin: 20px auto 0; color: var(--muted); font-size:
       inp.oninput = function () { t.infra[f.id] = inp.value === '' ? NaN : parseFloat(inp.value); update(); };
       inf.appendChild(h('div', { cls: 'field' }, h('label', { 'for': 'infra-' + f.id, text: f.label + ' (' + f.unit + ')' }), inp));
     });
+    buildCost(t);
     update();
+  }
+
+  var COST_FIELDS = ['prevalence', 'readMinutesManual', 'radiologistInrPerMin', 'readTimeSavingPct', 'costPerMissInr', 'readerSensitivity'];
+  function buildCost(t) {
+    t.cost = t.cost || {}; t.performance = t.performance || {};
+    var cf = clear(document.getElementById('cost-fields'));
+    var st = h('select', { id: 'cost-state' });
+    st.appendChild(option('', 'No state (use the infra tariff)', !t.cost.state));
+    D.vyayaTariffs.rows.forEach(function (r) {
+      if (r.id === 'national-default') return;
+      st.appendChild(option(r.id, r.state + (typeof r.landedInrPerKwh === 'number' ? ' (INR ' + r.landedInrPerKwh + ')' : ' (no figure yet)'), t.cost.state === r.id));
+    });
+    st.onchange = function () { t.cost.state = st.value || undefined; update(); };
+    cf.appendChild(h('div', { cls: 'field' }, h('label', { 'for': 'cost-state', text: 'State (Vyaya landed tariff)' }), st));
+    [['sensitivity', 'point', 'Sensitivity, point'], ['sensitivity', 'lower95', 'Sensitivity, lower 95%'],
+     ['specificity', 'point', 'Specificity, point'], ['specificity', 'lower95', 'Specificity, lower 95%']].forEach(function (x) {
+      var id = 'perf-' + x[0] + '-' + x[1];
+      var inp = h('input', { id: id, type: 'number', min: '0', max: '1', step: '0.01' });
+      var cur = t.performance[x[0]] && t.performance[x[0]][x[1]];
+      inp.value = cur === undefined ? '' : cur;
+      inp.oninput = function () {
+        t.performance[x[0]] = t.performance[x[0]] || {};
+        if (inp.value === '') delete t.performance[x[0]][x[1]]; else t.performance[x[0]][x[1]] = parseFloat(inp.value);
+        if (t.performance[x[0]].point === undefined) delete t.performance[x[0]];
+        update();
+      };
+      cf.appendChild(h('div', { cls: 'field' }, h('label', { 'for': id, text: x[2] + ' (0 to 1)' }), inp));
+    });
+    COST_FIELDS.forEach(function (id) {
+      var a = N.Cost.DEFAULTS[id];
+      var inp = h('input', { id: 'cost-' + id, type: 'number', min: String(a.min), step: 'any', placeholder: String(a.value) });
+      inp.value = t.cost[id] === undefined ? '' : t.cost[id];
+      inp.oninput = function () { if (inp.value === '') delete t.cost[id]; else t.cost[id] = parseFloat(inp.value); update(); };
+      cf.appendChild(h('div', { cls: 'field' }, h('label', { 'for': 'cost-' + id, text: a.label + ' (' + a.unit + '; default ' + a.value + ', ' + a.status + ')' }), inp));
+    });
+  }
+
+  function renderAfford(r) {
+    var c = clear(document.getElementById('afford-card'));
+    var p = r.costProfile, a = r.affordability;
+    c.className = 'panel afford ' + (a ? a.verdict : '');
+    c.appendChild(h('div', { cls: 'eyebrow', text: 'Affordability: what the hospital pays per study, against the same service without the tool' }));
+    c.appendChild(h('div', { cls: 'separate', text: 'A separate axis. It never enters a gate, knockout or merit score, so a cheap tool cannot buy readiness.' }));
+    if (!r.entry.passed || !p || !a) { c.appendChild(h('div', { cls: 'muted', id: 'afford-label', text: r.entry.passed ? 'Not computed.' : 'Not computed: the tool was rejected at entry.' })); return; }
+    c.appendChild(h('div', null, h('span', { cls: 'apill ' + a.verdict, id: 'afford-pill', text: a.verdict.replace('_', ' ') })));
+    c.appendChild(h('div', { cls: 'vlabel', id: 'afford-label', text: a.label }));
+    c.appendChild(h('div', { text: a.reason }));
+    if (!p.total) return;
+    var max = Math.max.apply(null, p.layers.map(function (l) { return l.perStudy.worst; }).concat([1]));
+    var lay = h('div', { cls: 'layers', id: 'afford-layers' });
+    p.layers.forEach(function (l) {
+      var bar = h('div', { cls: 'lbar' }); var fill = h('i', { cls: (l.id === 'licence_compute' || l.id === 'power') ? 'compute' : '' });
+      fill.style.width = (l.perStudy.worst / max * 100).toFixed(1) + '%'; bar.appendChild(fill);
+      lay.appendChild(h('div', { cls: 'layer' }, h('span', { text: l.label }), bar,
+        h('span', { cls: 'num', text: inr(l.perStudy.best) + (Math.round(l.perStudy.best) !== Math.round(l.perStudy.worst) ? ' to ' + inr(l.perStudy.worst) : '') })));
+    });
+    c.appendChild(lay);
+    var dl = h('dl', { cls: 'kv' });
+    var be = p.breakEvenStudiesPerMonth;
+    [['With the tool, per study', inr(p.total.best) + ' to ' + inr(p.total.worst)],
+     ['Without it (reading plus errors)', inr(p.manual.worst)],
+     ['Compute and power share', Math.round(p.computeShare.worst * 100) + '% of the worst-case bill'],
+     ['Break-even volume', be.worst === null ? 'None at any volume' : Math.ceil(be.worst).toLocaleString('en-IN') + ' studies a month (worst case)'],
+     ['Studies a month', String(p.volume.studiesPerMonth)],
+     ['Tariff', p.tariff.value + ' INR/kWh, ' + p.tariff.source]].forEach(function (x) { dl.appendChild(h('dt', { text: x[0] })); dl.appendChild(h('dd', { text: x[1] })); });
+    c.appendChild(dl);
+    var dec = p.drivers.filter(function (d) { return d.decidesVerdict; });
+    c.appendChild(h('h3', { text: 'Unmeasured inputs that decide this answer' }));
+    var ul = h('ul', { cls: 'drivers', id: 'afford-drivers' });
+    if (!dec.length) ul.appendChild(h('li', { text: 'None. The verdict holds when each placeholder or illustrative input is halved or raised by half.' }));
+    dec.forEach(function (d) { ul.appendChild(h('li', { text: d.label + ' (' + d.status + ', now ' + d.value + '): net cost per study moves from ' + inr(d.netWorst[0]) + ' to ' + inr(d.netWorst[1]) + '.' })); });
+    c.appendChild(ul);
+    p.flags.forEach(function (f) { c.appendChild(h('div', { cls: 'hint', text: (f.level === 'warn' ? 'Warning: ' : '') + f.text })); });
+    c.appendChild(h('div', { cls: 'hint', text: 'Not included: ' + p.notIncluded.join('; ') + '.' }));
+    c.appendChild(h('div', { cls: 'hint', text: 'Who pays (monthly, worst case): ' + Object.keys(p.whoPays.sharesPct).filter(function (k) { return p.whoPays.sharesPct[k] > 0; }).map(function (k) {
+      return k + ' ' + p.whoPays.sharesPct[k] + '% = ' + inr(p.whoPays.monthlyWorst[k]); }).join('; ') + '. Shares are a policy choice, set in the cost inputs.' }));
   }
 
   function buildGates() {
@@ -357,9 +464,9 @@ footer { max-width: 1440px; margin: 20px auto 0; color: var(--muted); font-size:
       if (!a) return;
       if (!sp) { a.textContent = 'Not scored: the tool was rejected at entry.'; return; }
       a.textContent = 'Level ' + sp.magnitude + ': ' + sp.anchor + ' Effective ' + r2(sp.worst) + ' to ' + r2(sp.best) + '.';
-      if (p.kind === 'derived') document.getElementById('mag-' + p.id).textContent = 'Level ' + sp.magnitude + (sp.figure && isFinite(sp.figure.value) ? ' (' + r2(sp.figure.value) + ' ' + sp.figure.unit + ')' : '');
+      if (p.kind === 'derived') document.getElementById('mag-' + p.id).textContent = 'Level ' + sp.magnitude + (sp.figure && typeof sp.figure.value === 'number' ? ' (' + r2(sp.figure.value) + ' ' + sp.figure.unit + ')' : '');
     });
-    renderVerdict(r); renderCarbon(r); renderBand(r); renderModes(t, r); renderDecision(r);
+    renderVerdict(r); renderCarbon(r); renderBand(r); renderAfford(r); renderModes(t, r); renderDecision(r);
     renderEntry(r); renderGates(r); renderKnockouts(r); renderParams(r);
     document.getElementById('json-out').textContent = JSON.stringify(r, null, 2);
     var btn = document.getElementById('tool-' + t.id);
@@ -393,7 +500,7 @@ footer { max-width: 1440px; margin: 20px auto 0; color: var(--muted); font-size:
      ['Running cost', inr(f.dailyCost) + '/day'], ['Storage', inr(f.storageMonthly) + '/month'],
      ['Five-year TCO', inr(f.tco5y)]].forEach(function (x) { dl.appendChild(h('dt', { text: x[0] })); dl.appendChild(h('dd', { text: x[1] })); });
     c.appendChild(dl);
-    c.appendChild(h('div', { cls: 'hint', text: 'Operational emissions only: ' + f.formulas.co2KgPerYear + '. Embodied hardware carbon is not counted.' }));
+    c.appendChild(h('div', { cls: 'hint', text: 'Operational emissions only: ' + f.formulas.co2KgPerYear + '. IT load only; the cost panel adds facility overhead (PUE). Embodied hardware carbon is not counted.' }));
   }
 
   function renderBand(r) {

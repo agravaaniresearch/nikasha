@@ -1,0 +1,15 @@
+{
+  "repository": "https://github.com/agravaaniresearch/vyaya",
+  "commit": "2b5ae5ed7e52b78a68a70a6ef8991b79805db7a5",
+  "engineVersion": "0.2.0",
+  "copiedOn": "2026-11-12",
+  "licence": "MIT",
+  "note": "Pinned copy. Do not edit these files here; update them by copying from a newer Vyaya commit and changing this record. test/contract.test.js fails if any file differs from its recorded hash.",
+  "sha256": {
+    "engine.js": "5f7694f39dba22560409669dec5ec080a5cb124d8e1f63cc359ee0a128ace242",
+    "electricity_tariffs.json": "af966deb3d9312e148b93060ec78983fcd7d9dca96f348dcb8f68f52f7971ff0",
+    "assumptions.json": "d91666967f56e7ea0b4292384b1d04b301c4fce4f8e136cc01edc64023047bc0",
+    "sources.json": "52d8009c0cfd382f626cc642e8a6dc3bdd985915e9ace14b4e7f157e34631088",
+    "LICENSE": "a0b2e176470c45d02be25e1dd388849d9386889ec3d23feb30f6bbf07f3752a0"
+  }
+}

@@ -1,0 +1,129 @@
+{
+ "note": "Produced by Vyaya toCostProfile() on its default synthetic scenario, branch nikasha-cost-profile, engine 0.2.0. Regenerate after re-vendoring Vyaya.",
+ "profile": {
+  "contractVersion": "1.0.0",
+  "producer": {
+   "name": "vyaya",
+   "version": "0.2.0",
+   "vyayaEngine": "0.2.0"
+  },
+  "unit": "per_patient",
+  "currency": "INR",
+  "synthetic": true,
+  "volume": {
+   "patientsPerMonth": 1000,
+   "studiesPerDay": null,
+   "studiesPerMonth": null
+  },
+  "figures": {
+   "valid": false,
+   "missing": [
+    "whPerStudy",
+    "gco2PerStudy",
+    "dailyCostPerStudy",
+    "storageCostPerStudy",
+    "tcoPerStudy"
+   ]
+  },
+  "layers": [
+   {
+    "id": "compute",
+    "label": "Compute (Per-token API)",
+    "perStudy": {
+     "worst": 0.7725696,
+     "best": 0.3862848
+    }
+   },
+   {
+    "id": "people",
+    "label": "Engineering, support and review",
+    "perStudy": {
+     "worst": 132.44444444444443,
+     "best": 132.44444444444443
+    }
+   },
+   {
+    "id": "validation",
+    "label": "Validation, re-validation and monitoring",
+    "perStudy": {
+     "worst": 26.27777777777778,
+     "best": 26.27777777777778
+    }
+   },
+   {
+    "id": "errors",
+    "label": "Cost of uncaught errors",
+    "perStudy": {
+     "worst": 0,
+     "best": 0
+    }
+   }
+  ],
+  "total": {
+   "worst": 159.4947918222222,
+   "best": 159.10850702222223
+  },
+  "manual": {
+   "worst": 20,
+   "best": 20
+  },
+  "net": {
+   "worst": 139.4947918222222,
+   "best": 139.10850702222223
+  },
+  "breakEvenStudiesPerMonth": {
+   "worst": 10804.637091896948,
+   "best": 10519.037775022618,
+   "reason": null
+  },
+  "computeShare": {
+   "worst": 0.004843854718849564,
+   "best": 0.002427807332426598
+  },
+  "affordability": {
+   "verdict": "COSTS_MORE",
+   "label": "Costs more per patient than manual entry",
+   "reason": "Net cost per patient against manual entry: INR 139.49 (repriced) to INR 139.11 (quoted). Negative means AI saves money."
+  },
+  "whoPays": {
+   "sharesPct": {
+    "patient": 0,
+    "hospital": 100,
+    "insurer": 0,
+    "consortium": 0
+   },
+   "monthlyWorst": {
+    "patient": 0,
+    "hospital": 159494.7918222222,
+    "insurer": 0,
+    "consortium": 0
+   },
+   "monthlyBest": {
+    "patient": 0,
+    "hospital": 159108.5070222222,
+    "insurer": 0,
+    "consortium": 0
+   }
+  },
+  "drivers": [],
+  "inputsUsed": [],
+  "placeholdersInUse": [],
+  "notIncluded": [
+   "Land and building (left blank)",
+   "Cost of money (no interest is charged on the rig or the build cost)",
+   "Cost of uncaught errors (no scenario value set)",
+   "Errors made by manual entry (no manual error rate set)",
+   "Storage, networking and data transfer",
+   "Staff training and change management",
+   "Downtime and fallback to manual entry",
+   "Scanning paper into images, if not already digital",
+   "Model or software licence fees beyond the API price"
+  ],
+  "flags": [
+   {
+    "level": "info",
+    "text": "Produced by Vyaya: per patient, worst = repriced cloud prices, best = quoted prices. Energy and carbon per study are not computed here."
+   }
+  ]
+ }
+}
