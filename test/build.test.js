@@ -5,16 +5,16 @@ const test = require('node:test');
 const assert = require('node:assert/strict');
 const fs = require('fs');
 const path = require('path');
-const { build, OUT } = require('../build.js');
+const { build, OUT, DATA_FILES, SCRIPTS } = require('../build.js');
 
 const html = fs.readFileSync(OUT, 'utf8');
 
-function between(name) {
-  const start = '// BEGIN src/' + name + '\n';
-  const end = '// END src/' + name;
+function between(rel) {
+  const start = '// BEGIN ' + rel + '\n';
+  const end = '// END ' + rel;
   const i = html.indexOf(start);
   const j = html.indexOf(end, i);
-  assert.ok(i >= 0 && j > i, 'markers for ' + name + ' present');
+  assert.ok(i >= 0 && j > i, 'markers for ' + rel + ' present');
   return html.slice(i + start.length, j);
 }
 
@@ -22,11 +22,26 @@ test('index.html is the current build output', () => {
   assert.equal(html, build(), 'Run `node build.js` and commit index.html');
 });
 
-test('embedded engine and samples are byte-identical to src/', () => {
-  for (const name of ['engine.js', 'samples.js']) {
-    assert.equal(between(name), fs.readFileSync(path.join(__dirname, '..', 'src', name), 'utf8'));
+test('embedded scripts are byte-identical to their sources', () => {
+  for (const rel of Object.values(SCRIPTS)) {
+    assert.equal(between(rel), fs.readFileSync(path.join(__dirname, '..', rel), 'utf8'), rel);
+    assert.equal(html.split('// BEGIN ' + rel).length, 2, rel + ' embedded exactly once');
   }
-  assert.equal(html.split('// BEGIN src/engine.js').length, 2, 'engine embedded exactly once');
+});
+
+test('embedded data equals the data files', () => {
+  const block = between('data');
+  const sandbox = { window: {} };
+  new Function('window', block)(sandbox.window);
+  for (const [k, rel] of Object.entries(DATA_FILES)) {
+    assert.deepEqual(sandbox.window.NikashaData[k], JSON.parse(fs.readFileSync(path.join(__dirname, '..', rel), 'utf8')), rel);
+  }
+});
+
+test('scripts load in dependency order', () => {
+  const order = ['// BEGIN data', '// BEGIN vendor/vyaya/engine.js', '// BEGIN src/cost.js', '// BEGIN src/engine.js', 'window.Nikasha;'].map((m) => html.indexOf(m));
+  order.forEach((x) => assert.ok(x > 0));
+  assert.deepEqual(order.slice().sort((a, b) => a - b), order);
 });
 
 test('index.html is fully self-contained', () => {

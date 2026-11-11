@@ -2,7 +2,9 @@
 /*
  * Headless browser check. Opens index.html from disk with Playwright
  * (Chromium), fails on any console error or page error, and checks that each
- * sample tool renders its expected verdict, plus an X-ray rejection.
+ * sample tool renders its expected verdict and an affordability verdict that
+ * matches the engine, that changing cost inputs never changes readiness, plus
+ * an X-ray rejection. With --screenshots it writes docs/img/*.png.
  *
  *   npm run check:browser
  */
@@ -10,11 +12,13 @@
 const path = require('path');
 const { pathToFileURL } = require('url');
 const { chromium } = require('playwright');
-const { SAMPLES } = require('../src/samples.js');
+const SAMPLES = require('../data/samples.json').samples;
+const N = require('../src/engine.js');
+const SHOTS = process.argv.includes('--screenshots');
 
 (async () => {
   const browser = await chromium.launch();
-  const page = await browser.newPage();
+  const page = await browser.newPage({ viewport: { width: 1440, height: 1000 } });
   const errors = [];
   const requests = [];
   page.on('console', (m) => { if (m.type() === 'error') errors.push('console: ' + m.text()); });
@@ -31,7 +35,30 @@ const { SAMPLES } = require('../src/samples.js');
     const ok = verdict === s.expectedVerdict;
     console.log((ok ? 'PASS ' : 'FAIL ') + s.name + ': ' + verdict + ' (' + label + '); carbon ' + carbon.trim());
     if (!ok) failures.push(s.name + ' expected ' + s.expectedVerdict + ', got ' + verdict);
+    const afford = await page.textContent('#afford-pill');
+    const want = N.evaluate(s).affordability.verdict.replace('_', ' ');
+    console.log((afford === want ? 'PASS ' : 'FAIL ') + s.name + ' affordability: ' + afford);
+    if (afford !== want) failures.push(s.name + ' affordability ' + afford + ', engine says ' + want);
+    const layers = await page.$$eval('#afford-layers .layer', (r) => r.length);
+    if (layers !== 8) failures.push(s.name + ' shows ' + layers + ' cost layers, expected 8');
+    if (SHOTS) {
+      await page.screenshot({ path: path.join(__dirname, '..', 'docs', 'img', s.id + '.png'), fullPage: false });
+      const card = await page.$('#afford-card');
+      await card.screenshot({ path: path.join(__dirname, '..', 'docs', 'img', s.id + '-affordability.png') });
+    }
   }
+  // Separation: wild cost inputs must not move readiness.
+  await page.click('#tool-' + SAMPLES[2].id);
+  const before = await page.getAttribute('#verdict-card', 'data-verdict');
+  await page.fill('#cost-costPerMissInr', '99999999');
+  await page.fill('#cost-readMinutesManual', '0');
+  await page.selectOption('#cost-state', 'mh');
+  const after = await page.getAttribute('#verdict-card', 'data-verdict');
+  const tariffShown = await page.textContent('#afford-card');
+  console.log((before === after ? 'PASS ' : 'FAIL ') + 'readiness unchanged by cost inputs: ' + before + ' -> ' + after);
+  if (before !== after) failures.push('cost inputs changed readiness');
+  if (!/Maharashtra/.test(tariffShown)) failures.push('state tariff not shown after selecting Maharashtra');
+  await page.click('#reset-btn');
   // X-ray rejection through the UI.
   await page.click('#tool-' + SAMPLES[0].id);
   await page.selectOption('#f-modality', 'XRAY');

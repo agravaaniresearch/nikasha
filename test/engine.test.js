@@ -2,7 +2,7 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
 const N = require('../src/engine.js');
-const { SAMPLES } = require('../src/samples.js');
+const SAMPLES = require('../data/samples.json').samples;
 
 const clone = (o) => JSON.parse(JSON.stringify(o));
 const sample = (id) => clone(SAMPLES.find((s) => s.id === id));
