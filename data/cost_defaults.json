@@ -1,0 +1,448 @@
+{
+  "meta": {
+    "description": "Defaults for the per-study cost model of an imaging AI tool. Each value carries a provenance status from the shared vocabulary (statutory, secondary, placeholder, illustrative, user). Values marked placeholder or illustrative are not findings. Hardware life (statutory), residual value, cost of capital, GPU failure rate, the share of a failure not covered and facility overhead (PUE) are read from the vendored Vyaya assumptions, not duplicated here.",
+    "vyayaInputs": [
+      "lifeYears",
+      "residualPct",
+      "costOfCapitalPct",
+      "annualFailureRate",
+      "failureUncoveredShare",
+      "pue"
+    ],
+    "dataVersion": "2026-11-12"
+  },
+  "groups": [
+    {
+      "id": "clinical",
+      "label": "Clinical error model"
+    },
+    {
+      "id": "people",
+      "label": "People and reading time"
+    },
+    {
+      "id": "engineering",
+      "label": "Integration and support"
+    },
+    {
+      "id": "validation",
+      "label": "Validation, monitoring and governance"
+    },
+    {
+      "id": "compute",
+      "label": "Compute, power and hardware failure"
+    },
+    {
+      "id": "scenario",
+      "label": "Who pays"
+    }
+  ],
+  "inputs": [
+    {
+      "id": "prevalence",
+      "group": "clinical",
+      "label": "Share of studies that contain the target finding",
+      "unit": "fraction",
+      "value": 0.1,
+      "min": 0,
+      "status": "illustrative",
+      "sources": [
+        "author-design"
+      ],
+      "reason": "Varies by finding and referral pattern; set it from local audit data.",
+      "max": 1
+    },
+    {
+      "id": "readerSensitivity",
+      "group": "clinical",
+      "label": "Radiologist sensitivity reading without the tool",
+      "unit": "fraction",
+      "value": 0.9,
+      "min": 0,
+      "status": "placeholder",
+      "sources": [
+        "author-design"
+      ],
+      "reason": "No single published figure applies across findings; replace with local or literature values for the finding.",
+      "max": 1
+    },
+    {
+      "id": "readerSpecificity",
+      "group": "clinical",
+      "label": "Radiologist specificity reading without the tool",
+      "unit": "fraction",
+      "value": 0.97,
+      "min": 0,
+      "status": "placeholder",
+      "sources": [
+        "author-design"
+      ],
+      "reason": "As above.",
+      "max": 1
+    },
+    {
+      "id": "unreadFraction",
+      "group": "clinical",
+      "label": "Share of studies issued with no clinician read (autonomous mode only)",
+      "unit": "fraction",
+      "value": 0.3,
+      "min": 0,
+      "status": "user",
+      "sources": [
+        "author-design"
+      ],
+      "reason": "Only used in autonomous mode; a policy choice for the deploying site.",
+      "max": 1
+    },
+    {
+      "id": "readMinutesManual",
+      "group": "people",
+      "label": "Radiologist minutes to read one study without the tool",
+      "unit": "minutes",
+      "value": 10,
+      "min": 0,
+      "status": "illustrative",
+      "sources": [
+        "author-design"
+      ],
+      "reason": "Depends on study type; a head CT and a prostate MRI differ several-fold.",
+      "max": 240
+    },
+    {
+      "id": "radiologistInrPerMin",
+      "group": "people",
+      "label": "Cost of radiologist time",
+      "unit": "INR/minute",
+      "value": 25,
+      "min": 0,
+      "status": "illustrative",
+      "sources": [
+        "author-design"
+      ],
+      "reason": "About INR 1,500 an hour; replace with the site's loaded cost.",
+      "max": 1000
+    },
+    {
+      "id": "readTimeSavingPct",
+      "group": "people",
+      "label": "Reading time saved per study with the tool",
+      "unit": "%",
+      "value": 0,
+      "min": 0,
+      "status": "user",
+      "sources": [
+        "author-design"
+      ],
+      "reason": "Defaults to zero because a vendor claim is not evidence; enter only a measured saving.",
+      "max": 100
+    },
+    {
+      "id": "flagReviewMinutes",
+      "group": "people",
+      "label": "Extra minutes to adjudicate each study the tool flags",
+      "unit": "minutes",
+      "value": 2,
+      "min": 0,
+      "status": "illustrative",
+      "sources": [
+        "author-design"
+      ],
+      "reason": "Covers checking true and false flags.",
+      "max": 60
+    },
+    {
+      "id": "fpActedFraction",
+      "group": "people",
+      "label": "Share of false alarms that trigger further work-up",
+      "unit": "fraction",
+      "value": 0.3,
+      "min": 0,
+      "status": "placeholder",
+      "sources": [
+        "author-design"
+      ],
+      "reason": "Depends on local practice.",
+      "max": 1
+    },
+    {
+      "id": "fpWorkupInr",
+      "group": "people",
+      "label": "Cost of work-up after a false alarm acted on",
+      "unit": "INR",
+      "value": 1500,
+      "min": 0,
+      "status": "illustrative",
+      "sources": [
+        "author-design"
+      ],
+      "reason": "Extra imaging, consultation or recall.",
+      "max": 1000000
+    },
+    {
+      "id": "costPerMissInr",
+      "group": "people",
+      "label": "Cost of one missed finding",
+      "unit": "INR",
+      "value": 50000,
+      "min": 0,
+      "status": "placeholder",
+      "sources": [
+        "author-design"
+      ],
+      "reason": "No authoritative figure exists; it stands for downstream treatment and harm. Replace it, and treat outputs as illustrative until you do.",
+      "max": 100000000
+    },
+    {
+      "id": "costPerDelayInr",
+      "group": "people",
+      "label": "Cost of one finding delayed by triage ranking it low",
+      "unit": "INR",
+      "value": 5000,
+      "min": 0,
+      "status": "placeholder",
+      "sources": [
+        "author-design"
+      ],
+      "reason": "Triage mode only. The cost of a positive finding read late, not missed, because a clinician still reads every study.",
+      "max": 100000000
+    },
+    {
+      "id": "baselineDelayShare",
+      "group": "people",
+      "label": "Share of positive studies delayed in an unprioritised queue",
+      "unit": "fraction",
+      "value": 0.5,
+      "min": 0,
+      "max": 1,
+      "status": "placeholder",
+      "sources": [
+        "author-design"
+      ],
+      "reason": "Triage mode only. Without a tool, a positive study waits its turn; with one, the positives it flags are read first. Set from local turnaround data."
+    },
+    {
+      "id": "integrationInr",
+      "group": "engineering",
+      "label": "One-off integration with PACS, RIS and worklist",
+      "unit": "INR",
+      "value": 300000,
+      "min": 0,
+      "status": "illustrative",
+      "sources": [
+        "author-design"
+      ],
+      "reason": "Engineering and interface work.",
+      "max": 1000000000.0
+    },
+    {
+      "id": "integrationAmortMonths",
+      "group": "engineering",
+      "label": "Months over which integration is spread",
+      "unit": "months",
+      "value": 36,
+      "min": 1,
+      "status": "user",
+      "sources": [
+        "author-design"
+      ],
+      "reason": "Accounting choice.",
+      "max": 240
+    },
+    {
+      "id": "supportInrPerMonth",
+      "group": "engineering",
+      "label": "Local IT and support time",
+      "unit": "INR/month",
+      "value": 20000,
+      "min": 0,
+      "status": "illustrative",
+      "sources": [
+        "author-design"
+      ],
+      "reason": "In-house support beyond the vendor contract.",
+      "max": 100000000.0
+    },
+    {
+      "id": "localValSample",
+      "group": "validation",
+      "label": "Cases in the local validation study",
+      "unit": "studies",
+      "value": 300,
+      "min": 0,
+      "status": "illustrative",
+      "sources": [
+        "author-design"
+      ],
+      "reason": "Enough to estimate sensitivity with a usable interval at modest prevalence; size it properly for your finding.",
+      "max": 100000
+    },
+    {
+      "id": "valMinPerCase",
+      "group": "validation",
+      "label": "Radiologist minutes per validation case (reference read)",
+      "unit": "minutes",
+      "value": 12,
+      "min": 0,
+      "status": "illustrative",
+      "sources": [
+        "author-design"
+      ],
+      "reason": "Reference reads take longer than routine reads.",
+      "max": 240
+    },
+    {
+      "id": "valAnalysisInr",
+      "group": "validation",
+      "label": "Analysis and write-up of the local validation",
+      "unit": "INR",
+      "value": 100000,
+      "min": 0,
+      "status": "illustrative",
+      "sources": [
+        "author-design"
+      ],
+      "reason": "Statistician and clinician time.",
+      "max": 1000000000.0
+    },
+    {
+      "id": "valAmortMonths",
+      "group": "validation",
+      "label": "Months over which the initial validation is spread",
+      "unit": "months",
+      "value": 36,
+      "min": 1,
+      "status": "user",
+      "sources": [
+        "author-design"
+      ],
+      "reason": "Accounting choice.",
+      "max": 240
+    },
+    {
+      "id": "updatesPerYear",
+      "group": "validation",
+      "label": "Model updates per year that need re-validation",
+      "unit": "count/year",
+      "value": 2,
+      "min": 0,
+      "status": "placeholder",
+      "sources": [
+        "author-design"
+      ],
+      "reason": "Vendors rarely publish update cadence.",
+      "max": 52
+    },
+    {
+      "id": "revalSample",
+      "group": "validation",
+      "label": "Cases per re-validation after an update",
+      "unit": "studies",
+      "value": 100,
+      "min": 0,
+      "status": "illustrative",
+      "sources": [
+        "author-design"
+      ],
+      "reason": "A smaller check than the initial study.",
+      "max": 100000
+    },
+    {
+      "id": "auditFraction",
+      "group": "validation",
+      "label": "Share of live studies audited against a reference read",
+      "unit": "fraction",
+      "value": 0.02,
+      "min": 0,
+      "status": "placeholder",
+      "sources": [
+        "author-design"
+      ],
+      "reason": "Ongoing monitoring for drift.",
+      "max": 1
+    },
+    {
+      "id": "governanceInrPerMonth",
+      "group": "validation",
+      "label": "Clinical governance, incident review and committee time",
+      "unit": "INR/month",
+      "value": 15000,
+      "min": 0,
+      "status": "illustrative",
+      "sources": [
+        "author-design"
+      ],
+      "reason": "Named owner, incident route and periodic review.",
+      "max": 100000000.0
+    },
+    {
+      "id": "hardwareShareOfUpfront",
+      "group": "compute",
+      "label": "Share of the upfront payment that is failure-prone hardware",
+      "unit": "fraction",
+      "value": 0.5,
+      "min": 0,
+      "status": "placeholder",
+      "sources": [
+        "author-design"
+      ],
+      "reason": "The rest is licence and installation.",
+      "max": 1
+    },
+    {
+      "id": "payerHospital",
+      "group": "scenario",
+      "label": "Share paid by the hospital",
+      "unit": "%",
+      "value": 100,
+      "min": 0,
+      "status": "user",
+      "sources": [
+        "author-design"
+      ],
+      "reason": "Who pays is a policy question, not a calculation. Same default as Vyaya.",
+      "max": 100
+    },
+    {
+      "id": "payerPatient",
+      "group": "scenario",
+      "label": "Share paid by the patient",
+      "unit": "%",
+      "value": 0,
+      "min": 0,
+      "status": "user",
+      "sources": [
+        "author-design"
+      ],
+      "reason": "",
+      "max": 100
+    },
+    {
+      "id": "payerInsurer",
+      "group": "scenario",
+      "label": "Share paid by an insurer or government scheme",
+      "unit": "%",
+      "value": 0,
+      "min": 0,
+      "status": "user",
+      "sources": [
+        "author-design"
+      ],
+      "reason": "",
+      "max": 100
+    },
+    {
+      "id": "payerConsortium",
+      "group": "scenario",
+      "label": "Share paid by a pooled consortium or public funder",
+      "unit": "%",
+      "value": 0,
+      "min": 0,
+      "status": "user",
+      "sources": [
+        "author-design"
+      ],
+      "reason": "",
+      "max": 100
+    }
+  ]
+}

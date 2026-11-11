@@ -1,0 +1,573 @@
+{
+  "meta": {
+    "name": "Nikasha framework",
+    "version": "0.2.0",
+    "status": "Working example on synthetic data. Not clinically or academically validated.",
+    "placeholderNotice": "All weights and thresholds are placeholders pending a stakeholder panel. Nikasha has not been calibrated against real adoption outcomes."
+  },
+  "certainty": [
+    {
+      "id": "clinical_use",
+      "label": "Actual clinical use",
+      "lo": 0.9,
+      "hi": 1,
+      "description": "Deployed in routine care with audited local results."
+    },
+    {
+      "id": "peer_reviewed",
+      "label": "Peer-reviewed publication",
+      "lo": 0.75,
+      "hi": 0.95,
+      "description": "Published in a peer-reviewed journal. Preprints and arXiv do not count here."
+    },
+    {
+      "id": "live_demo",
+      "label": "Live demonstration",
+      "lo": 0.55,
+      "hi": 0.8,
+      "description": "Shown working on cases chosen by the assessor, not by the vendor."
+    },
+    {
+      "id": "preprint",
+      "label": "Preprint or arXiv",
+      "lo": 0.25,
+      "hi": 0.5,
+      "description": "Public but not peer reviewed."
+    },
+    {
+      "id": "vendor_claim",
+      "label": "Vendor document",
+      "lo": 0.1,
+      "hi": 0.3,
+      "description": "White paper, brochure, slide deck or internal report."
+    },
+    {
+      "id": "unsupported",
+      "label": "Unsupported claim",
+      "lo": 0,
+      "hi": 0,
+      "description": "No evidence offered. Always scores 0."
+    }
+  ],
+  "modes": [
+    {
+      "id": "administrative",
+      "label": "Administrative",
+      "description": "Affects workflow only (worklist order, protocol suggestion). A clinician reads every study unaided."
+    },
+    {
+      "id": "advisory",
+      "label": "Advisory",
+      "description": "Shows findings to a clinician who reads the study and decides."
+    },
+    {
+      "id": "triage",
+      "label": "Triage",
+      "description": "Decides which studies are read first. A missed finding can delay care."
+    },
+    {
+      "id": "autonomous",
+      "label": "Autonomous",
+      "description": "Issues a result that some studies receive with no clinician read."
+    }
+  ],
+  "readyThreshold": {
+    "administrative": 55,
+    "advisory": 60,
+    "triage": 68,
+    "autonomous": 75
+  },
+  "modalities": [
+    {
+      "id": "CT",
+      "label": "CT",
+      "inScope": true
+    },
+    {
+      "id": "MRI",
+      "label": "MRI",
+      "inScope": true
+    },
+    {
+      "id": "XRAY",
+      "label": "X-ray (plain radiograph)",
+      "inScope": false,
+      "reason": "X-ray tools are out of scope. Nikasha defines its false-negative and false-positive anchors for cross-sectional CT and MRI reads. A projection radiograph has different lesion conspicuity, reference standards and error profiles, so a score against these anchors would not mean anything."
+    },
+    {
+      "id": "MAMMOGRAPHY",
+      "label": "Mammography",
+      "inScope": false,
+      "reason": "Mammography is an X-ray technique and is out of scope for the same reason as plain radiography: the CT and MRI error anchors do not transfer to projection imaging."
+    },
+    {
+      "id": "ULTRASOUND",
+      "label": "Ultrasound",
+      "inScope": false,
+      "reason": "Ultrasound is out of scope in this version. Only CT and MRI diagnostic tools are assessed."
+    },
+    {
+      "id": "PET",
+      "label": "PET or nuclear medicine",
+      "inScope": false,
+      "reason": "PET and nuclear medicine are out of scope in this version. Only CT and MRI diagnostic tools are assessed."
+    }
+  ],
+  "gateValues": [
+    "met",
+    "not_met",
+    "unknown"
+  ],
+  "gates": [
+    {
+      "id": "regulatory",
+      "label": "Regulatory authorisation",
+      "description": "Medical-device authorisation in the deploying jurisdiction covers this intended use.",
+      "modes": "all"
+    },
+    {
+      "id": "data_protection",
+      "label": "Data protection",
+      "description": "Processing of patient data complies with applicable law (in India, the DPDP Act 2023).",
+      "modes": "all"
+    },
+    {
+      "id": "intended_use",
+      "label": "Intended use matches deployment",
+      "description": "The autonomy mode being assessed sits inside the authorised intended use.",
+      "modes": "all"
+    },
+    {
+      "id": "accountability",
+      "label": "Clinical accountability",
+      "description": "A named clinical owner and an incident-reporting route exist at the deploying site.",
+      "modes": "all"
+    },
+    {
+      "id": "unsupervised_authorisation",
+      "label": "Unsupervised reporting authorised",
+      "description": "The authorisation explicitly permits results issued with no clinician read.",
+      "modes": [
+        "autonomous"
+      ]
+    }
+  ],
+  "parameters": [
+    {
+      "id": "sensitivity",
+      "label": "Sensitivity (false negatives)",
+      "domain": "clinical",
+      "kind": "assessed",
+      "anchors": [
+        "Not reported, sensitivity below 85%, or lower 95% CI bound below 80%.",
+        "Sensitivity 85 to 89% with lower 95% CI bound at least 80%.",
+        "Sensitivity 90 to 94% with lower 95% CI bound at least 85%.",
+        "Sensitivity at least 95% with lower 95% CI bound at least 90%, reported per finding type."
+      ]
+    },
+    {
+      "id": "specificity",
+      "label": "Specificity (false positives)",
+      "domain": "clinical",
+      "kind": "assessed",
+      "anchors": [
+        "Not reported, specificity below 80%, or no false-positive rate per 100 studies.",
+        "Specificity 80 to 87%, false positives stated per 100 studies.",
+        "Specificity 88 to 93%, with false positives per 100 studies and the review workload they create.",
+        "Specificity at least 94%, false positives per 100 studies, and a review of what the false positives were."
+      ]
+    },
+    {
+      "id": "external_validation",
+      "label": "External validation",
+      "domain": "clinical",
+      "kind": "assessed",
+      "anchors": [
+        "Internal or development-set results only.",
+        "One external site, retrospective.",
+        "Two or more external sites, or one prospective external study.",
+        "Multi-site prospective validation on scanners and patients like those at the deploying site."
+      ]
+    },
+    {
+      "id": "subgroup_performance",
+      "label": "Subgroup and scanner robustness",
+      "domain": "clinical",
+      "kind": "assessed",
+      "anchors": [
+        "No subgroup or scanner-level results.",
+        "Results split by one factor, such as scanner vendor or age band.",
+        "Results split by scanner vendor, field strength or slice thickness, and by age and sex.",
+        "As level 2, plus a failure-mode analysis showing where the tool is weak and what it does there."
+      ]
+    },
+    {
+      "id": "human_oversight",
+      "label": "Human oversight and override",
+      "domain": "clinical",
+      "kind": "assessed",
+      "anchors": [
+        "Output cannot be overridden or audited; no record of what the tool showed.",
+        "Clinician can override and outputs are logged.",
+        "Override and logging, plus the image region or evidence behind each finding is shown.",
+        "As level 2, plus calibrated confidence, abstention on low-confidence cases and an audit report."
+      ]
+    },
+    {
+      "id": "post_market_monitoring",
+      "label": "Post-deployment monitoring",
+      "domain": "clinical",
+      "kind": "assessed",
+      "anchors": [
+        "No monitoring after deployment.",
+        "Vendor collects complaints only.",
+        "Periodic audit against local reference reads.",
+        "Continuous drift monitoring with preset thresholds that trigger review or withdrawal."
+      ]
+    },
+    {
+      "id": "workflow_integration",
+      "label": "Workflow integration",
+      "domain": "clinical",
+      "kind": "assessed",
+      "anchors": [
+        "Separate login and manual upload; no PACS or RIS link.",
+        "DICOM send and receive, but results shown outside PACS.",
+        "Results returned into PACS as DICOM structured report or secondary capture.",
+        "As level 2, plus worklist integration and structured report fields."
+      ]
+    },
+    {
+      "id": "deployment",
+      "label": "Deployment (edge or cloud)",
+      "domain": "infrastructure",
+      "kind": "assessed",
+      "anchors": [
+        "Cloud only, hosted outside the country, no offline fallback.",
+        "Cloud only, hosted in-country.",
+        "Hybrid: inference on site, cloud used only for updates or analytics.",
+        "Fully on site (edge); works through an internet outage and no image leaves the hospital."
+      ]
+    },
+    {
+      "id": "electricity",
+      "label": "Electricity use",
+      "domain": "infrastructure",
+      "kind": "derived"
+    },
+    {
+      "id": "carbon",
+      "label": "Carbon footprint",
+      "domain": "infrastructure",
+      "kind": "derived"
+    },
+    {
+      "id": "storage_cost",
+      "label": "Storage and retrieval cost",
+      "domain": "infrastructure",
+      "kind": "derived"
+    },
+    {
+      "id": "daily_cost",
+      "label": "Daily running cost",
+      "domain": "infrastructure",
+      "kind": "derived"
+    },
+    {
+      "id": "tco",
+      "label": "Total cost of ownership",
+      "domain": "infrastructure",
+      "kind": "derived"
+    },
+    {
+      "id": "update_process",
+      "label": "Update process",
+      "domain": "infrastructure",
+      "kind": "assessed",
+      "anchors": [
+        "Silent or unannounced model updates.",
+        "Vendor-pushed updates with release notes.",
+        "Versioned updates scheduled by the site, with change notes and performance deltas.",
+        "As level 2, plus local re-validation before go-live and one-step rollback."
+      ]
+    },
+    {
+      "id": "source_access",
+      "label": "Source code and algorithm access",
+      "domain": "infrastructure",
+      "kind": "assessed",
+      "anchors": [
+        "Closed source; no description of the algorithm.",
+        "Closed source; reviewable description of architecture and training data.",
+        "Source or weights available to auditors under a restrictive licence.",
+        "Open source under an OSI-approved licence, with weights and training recipe."
+      ]
+    }
+  ],
+  "derivedCuts": {
+    "electricity": {
+      "figure": "whPerStudy",
+      "label": "Energy per study",
+      "unit": "Wh",
+      "cuts": [
+        20,
+        60,
+        150
+      ]
+    },
+    "carbon": {
+      "figure": "gco2PerStudy",
+      "label": "Emissions per study",
+      "unit": "g CO2e",
+      "cuts": [
+        15,
+        45,
+        110
+      ]
+    },
+    "daily_cost": {
+      "figure": "dailyCostPerStudy",
+      "label": "Running cost per study",
+      "unit": "INR",
+      "cuts": [
+        25,
+        60,
+        120
+      ]
+    },
+    "storage_cost": {
+      "figure": "storageCostPerStudy",
+      "label": "Storage and retrieval cost per study",
+      "unit": "INR",
+      "cuts": [
+        2,
+        6,
+        15
+      ]
+    },
+    "tco": {
+      "figure": "tcoPerStudy",
+      "label": "Five-year cost of ownership per study",
+      "unit": "INR",
+      "cuts": [
+        80,
+        180,
+        350
+      ]
+    }
+  },
+  "weights": {
+    "administrative": {
+      "sensitivity": 8,
+      "specificity": 8,
+      "external_validation": 6,
+      "subgroup_performance": 4,
+      "human_oversight": 6,
+      "post_market_monitoring": 4,
+      "workflow_integration": 14,
+      "deployment": 8,
+      "electricity": 6,
+      "carbon": 6,
+      "storage_cost": 7,
+      "daily_cost": 7,
+      "tco": 10,
+      "update_process": 4,
+      "source_access": 2
+    },
+    "advisory": {
+      "sensitivity": 14,
+      "specificity": 12,
+      "external_validation": 10,
+      "subgroup_performance": 7,
+      "human_oversight": 9,
+      "post_market_monitoring": 6,
+      "workflow_integration": 10,
+      "deployment": 5,
+      "electricity": 3,
+      "carbon": 4,
+      "storage_cost": 4,
+      "daily_cost": 4,
+      "tco": 6,
+      "update_process": 3,
+      "source_access": 3
+    },
+    "triage": {
+      "sensitivity": 18,
+      "specificity": 14,
+      "external_validation": 12,
+      "subgroup_performance": 9,
+      "human_oversight": 9,
+      "post_market_monitoring": 8,
+      "workflow_integration": 8,
+      "deployment": 4,
+      "electricity": 2,
+      "carbon": 3,
+      "storage_cost": 3,
+      "daily_cost": 2,
+      "tco": 4,
+      "update_process": 2,
+      "source_access": 2
+    },
+    "autonomous": {
+      "sensitivity": 20,
+      "specificity": 16,
+      "external_validation": 14,
+      "subgroup_performance": 11,
+      "human_oversight": 10,
+      "post_market_monitoring": 10,
+      "workflow_integration": 4,
+      "deployment": 3,
+      "electricity": 1,
+      "carbon": 2,
+      "storage_cost": 2,
+      "daily_cost": 1,
+      "tco": 3,
+      "update_process": 3,
+      "source_access": 0
+    }
+  },
+  "knockouts": [
+    {
+      "param": "sensitivity",
+      "thresholds": {
+        "administrative": 1,
+        "advisory": 1.5,
+        "triage": 2,
+        "autonomous": 2.5
+      }
+    },
+    {
+      "param": "specificity",
+      "thresholds": {
+        "administrative": 1,
+        "advisory": 1.25,
+        "triage": 1.5,
+        "autonomous": 2.25
+      }
+    },
+    {
+      "param": "external_validation",
+      "thresholds": {
+        "administrative": null,
+        "advisory": null,
+        "triage": 1.5,
+        "autonomous": 2
+      }
+    },
+    {
+      "param": "post_market_monitoring",
+      "thresholds": {
+        "administrative": null,
+        "advisory": null,
+        "triage": null,
+        "autonomous": 1.5
+      }
+    }
+  ],
+  "infraFields": [
+    {
+      "id": "studiesPerDay",
+      "label": "Studies processed per day",
+      "unit": "studies"
+    },
+    {
+      "id": "energyWhPerStudy",
+      "label": "Compute energy per study",
+      "unit": "Wh"
+    },
+    {
+      "id": "idleWatts",
+      "label": "Idle power of dedicated hardware",
+      "unit": "W"
+    },
+    {
+      "id": "gridIntensity",
+      "label": "Grid carbon intensity where compute runs",
+      "unit": "g CO2e/kWh"
+    },
+    {
+      "id": "tariffPerKWh",
+      "label": "Electricity tariff",
+      "unit": "INR/kWh"
+    },
+    {
+      "id": "feePerStudy",
+      "label": "Licence fee per study",
+      "unit": "INR"
+    },
+    {
+      "id": "cloudPerDay",
+      "label": "Cloud compute charge per day",
+      "unit": "INR"
+    },
+    {
+      "id": "storageTB",
+      "label": "Storage held for the tool",
+      "unit": "TB"
+    },
+    {
+      "id": "storagePerTBMonth",
+      "label": "Storage price",
+      "unit": "INR/TB/month"
+    },
+    {
+      "id": "retrievalPerMonth",
+      "label": "Retrieval and egress charges",
+      "unit": "INR/month"
+    },
+    {
+      "id": "upfront",
+      "label": "Upfront licence and hardware",
+      "unit": "INR"
+    },
+    {
+      "id": "annualMaintenance",
+      "label": "Annual maintenance and support",
+      "unit": "INR/year"
+    }
+  ],
+  "decisionRows": [
+    {
+      "id": "R1",
+      "tier": "Entry",
+      "condition": "Modality is not CT or MRI",
+      "verdict": "REJECTED",
+      "label": "Rejected at entry"
+    },
+    {
+      "id": "R2",
+      "tier": "Tier 1",
+      "condition": "Any legal gate not met",
+      "verdict": "NOT_READY",
+      "label": "Not ready: legal gate"
+    },
+    {
+      "id": "R3",
+      "tier": "Tier 2",
+      "condition": "Any clinical knockout failed",
+      "verdict": "NOT_READY",
+      "label": "Not ready: clinical knockout"
+    },
+    {
+      "id": "R4",
+      "tier": "Tier 3",
+      "condition": "Worst-case merit at or above the mode threshold",
+      "verdict": "READY",
+      "label": "Ready"
+    },
+    {
+      "id": "R5",
+      "tier": "Tier 3",
+      "condition": "Best-case merit at or above threshold, worst-case below",
+      "verdict": "CONDITIONAL",
+      "label": "Conditional: evidence-dependent"
+    },
+    {
+      "id": "R6",
+      "tier": "Tier 3",
+      "condition": "Best-case merit below the mode threshold",
+      "verdict": "NOT_READY",
+      "label": "Not ready: merit below threshold"
+    }
+  ]
+}

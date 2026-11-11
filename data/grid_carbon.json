@@ -1,0 +1,20 @@
+{
+  "meta": {
+    "description": "Grid carbon intensity used for operational emissions when a tool does not state its own. India runs a single synchronised national grid, so one national figure is used; there is no defensible state-wise split of grid carbon, unlike tariffs.",
+    "unit": "g CO2/kWh",
+    "dataVersion": "2026-11-12"
+  },
+  "rows": [
+    {
+      "id": "IN-national",
+      "region": "India, national grid",
+      "gPerKWh": 727,
+      "basis": "Weighted average emission factor adjusted for renewable energy, FY 2023-24",
+      "scope": "CO2 only; excludes methane, nitrous oxide, transmission and distribution losses and upstream fuel emissions",
+      "status": "secondary",
+      "sources": ["cea-co2-baseline-v20", "saurenergy-cea-v20-summary"],
+      "lastVerified": "2026-11-12",
+      "verification": "Figure read from secondary summaries of the CEA database (Saur Energy and Climatiq); the CEA workbook itself was not opened. Check the primary before relying on it."
+    }
+  ]
+}

@@ -1,0 +1,10 @@
+{
+  "meta": {
+    "description": "Sources cited by Nikasha's own data files. Sources cited by the vendored Vyaya data are in vendor/vyaya/sources.json and are referenced with the prefix 'vyaya:'. Wikipedia is not accepted as a source."
+  },
+  "sources": [
+    { "id": "cea-co2-baseline-v20", "title": "CO2 Baseline Database for the Indian Power Sector, Version 20.0 (Central Electricity Authority, December 2024), user guide", "url": "https://cea.nic.in/wp-content/uploads/2021/03/User_Guide_Version_20.0.pdf", "kind": "primary", "howRead": "User guide title page and revision history seen; the emission factor table was not read here." },
+    { "id": "saurenergy-cea-v20-summary", "title": "CEA's CO2 Baseline Database: impact of RE on Indian grid emissions intensity (Saur Energy)", "url": "https://www.saurenergy.com/solar-energy-news/ceas-co2-baseline-database-impact-of-re-on-indian-grid-emissions-intensity", "kind": "secondary", "howRead": "Read in search summary: weighted average emission factor adjusted for renewables 0.727 tCO2/MWh for 2023-24." },
+    { "id": "author-design", "title": "Nikasha design notes and author decisions (notes/nikasha.md)", "url": "https://github.com/agravaaniresearch/nikasha/blob/main/notes/nikasha.md", "kind": "author", "howRead": "Design record of this repository." }
+  ]
+}

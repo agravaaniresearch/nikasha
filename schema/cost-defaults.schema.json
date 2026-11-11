@@ -1,0 +1,25 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://github.com/agravaaniresearch/nikasha/schema/cost-defaults.schema.json",
+  "title": "Nikasha cost defaults",
+  "description": "Default value, allowed range and provenance for every input of the per-study cost model. Provenance uses the vocabulary shared with Vyaya.",
+  "type": "object", "required": ["meta", "groups", "inputs"],
+  "properties": {
+    "meta": { "type": "object", "required": ["description", "vyayaInputs", "dataVersion"], "properties": { "vyayaInputs": { "type": "array", "items": { "type": "string" } } } },
+    "groups": { "type": "array", "items": { "type": "object", "required": ["id", "label"] } },
+    "inputs": {
+      "type": "array",
+      "items": {
+        "type": "object", "required": ["id", "group", "label", "unit", "value", "min", "status", "sources", "reason"], "additionalProperties": false,
+        "properties": {
+          "id": { "type": "string", "pattern": "^[a-z][A-Za-z0-9]*$" }, "group": { "type": "string" }, "label": { "type": "string" }, "unit": { "type": "string" },
+          "value": { "type": "number" }, "min": { "type": "number" }, "max": { "type": "number" },
+          "status": { "$ref": "#/definitions/status" },
+          "sources": { "type": "array", "items": { "type": "string" }, "minItems": 1 },
+          "reason": { "type": "string" }
+        }
+      }
+    }
+  },
+  "definitions": { "status": { "enum": ["statutory", "secondary", "placeholder", "illustrative", "user", "constant"] } }
+}

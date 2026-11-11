@@ -1,0 +1,267 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://github.com/agravaaniresearch/nikasha/schema/tool.schema.json",
+  "title": "Nikasha tool assessment",
+  "description": "Everything an assessor records about one clinical AI tool for one target finding. This is the input contract of Nikasha: any implementation that reads a document valid against this schema and applies data/framework.json must reach the same verdict.",
+  "type": "object",
+  "required": [
+    "id",
+    "name",
+    "modality",
+    "mode",
+    "gates",
+    "params"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "id": {
+      "type": "string",
+      "pattern": "^[a-z0-9][a-z0-9-]*$",
+      "description": "Stable identifier."
+    },
+    "name": {
+      "type": "string",
+      "minLength": 1
+    },
+    "fictional": {
+      "type": "boolean",
+      "description": "True for synthetic sample tools. Real assessments must not set it."
+    },
+    "expectedVerdict": {
+      "enum": [
+        "READY",
+        "CONDITIONAL",
+        "NOT_READY",
+        "REJECTED"
+      ],
+      "description": "Test fixtures only: the verdict the sample was built to show."
+    },
+    "expectedRow": {
+      "type": "string",
+      "pattern": "^R[1-6]$"
+    },
+    "summary": {
+      "type": "string"
+    },
+    "finding": {
+      "type": "string",
+      "description": "One target finding per assessment; a multi-finding tool needs one assessment per finding."
+    },
+    "modality": {
+      "enum": [
+        "CT",
+        "MRI",
+        "XRAY",
+        "MAMMOGRAPHY",
+        "ULTRASOUND",
+        "PET"
+      ],
+      "description": "Only CT and MRI pass entry."
+    },
+    "mode": {
+      "enum": [
+        "administrative",
+        "advisory",
+        "triage",
+        "autonomous"
+      ]
+    },
+    "gates": {
+      "type": "object",
+      "description": "Tier 1 legal gates. Anything other than met fails, including a missing gate.",
+      "additionalProperties": false,
+      "properties": {
+        "regulatory": {
+          "$ref": "#/definitions/gate"
+        },
+        "data_protection": {
+          "$ref": "#/definitions/gate"
+        },
+        "intended_use": {
+          "$ref": "#/definitions/gate"
+        },
+        "accountability": {
+          "$ref": "#/definitions/gate"
+        },
+        "unsupervised_authorisation": {
+          "$ref": "#/definitions/gate"
+        }
+      }
+    },
+    "params": {
+      "type": "object",
+      "description": "One entry per framework parameter. Assessed parameters take a magnitude; derived parameters take only a certainty, because their magnitude is computed from the cost profile figures.",
+      "additionalProperties": {
+        "$ref": "#/definitions/paramInput"
+      }
+    },
+    "infra": {
+      "$ref": "#/definitions/infra"
+    },
+    "performance": {
+      "type": "object",
+      "description": "Numeric accuracy for the target finding. Used only by the cost model's error layer; the readiness score uses the anchored magnitude in params.",
+      "additionalProperties": false,
+      "properties": {
+        "sensitivity": {
+          "$ref": "#/definitions/estimate"
+        },
+        "specificity": {
+          "$ref": "#/definitions/estimate"
+        },
+        "note": {
+          "type": "string"
+        }
+      }
+    },
+    "cost": {
+      "type": "object",
+      "description": "Overrides for data/cost_defaults.json and the shared Vyaya inputs, plus the state whose landed tariff applies. Any input left out takes its default and its default's provenance status.",
+      "properties": {
+        "state": {
+          "type": "string",
+          "description": "Vyaya tariff row id, for example pb, mh, ka."
+        },
+        "note": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": {
+        "type": [
+          "number",
+          "null"
+        ]
+      }
+    },
+    "costProfile": {
+      "$ref": "cost-profile.schema.json",
+      "description": "A profile made elsewhere (for example exported from Vyaya). When present it is used instead of computing one."
+    },
+    "expectedAffordability": {
+      "enum": [
+        "SAVES",
+        "EVIDENCE_DEPENDENT",
+        "COSTS_MORE",
+        "INDETERMINATE"
+      ],
+      "description": "Test fixtures only: the affordability verdict the sample was built to show."
+    }
+  },
+  "definitions": {
+    "gate": {
+      "enum": [
+        "met",
+        "not_met",
+        "unknown"
+      ]
+    },
+    "certainty": {
+      "enum": [
+        "clinical_use",
+        "peer_reviewed",
+        "live_demo",
+        "preprint",
+        "vendor_claim",
+        "unsupported"
+      ]
+    },
+    "paramInput": {
+      "type": "object",
+      "required": [
+        "certainty"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "magnitude": {
+          "enum": [
+            0,
+            1,
+            2,
+            3
+          ]
+        },
+        "certainty": {
+          "$ref": "#/definitions/certainty"
+        },
+        "note": {
+          "type": "string"
+        }
+      }
+    },
+    "estimate": {
+      "type": "object",
+      "required": [
+        "point"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "point": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "lower95": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        }
+      }
+    },
+    "infra": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "studiesPerDay": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "energyWhPerStudy": {
+          "type": "number",
+          "minimum": 0
+        },
+        "idleWatts": {
+          "type": "number",
+          "minimum": 0
+        },
+        "gridIntensity": {
+          "type": "number",
+          "minimum": 0,
+          "description": "g CO2/kWh. Leave out to use the national CEA figure."
+        },
+        "tariffPerKWh": {
+          "type": "number",
+          "minimum": 0,
+          "description": "Ignored when cost.state is set."
+        },
+        "feePerStudy": {
+          "type": "number",
+          "minimum": 0
+        },
+        "cloudPerDay": {
+          "type": "number",
+          "minimum": 0
+        },
+        "storageTB": {
+          "type": "number",
+          "minimum": 0
+        },
+        "storagePerTBMonth": {
+          "type": "number",
+          "minimum": 0
+        },
+        "retrievalPerMonth": {
+          "type": "number",
+          "minimum": 0
+        },
+        "upfront": {
+          "type": "number",
+          "minimum": 0
+        },
+        "annualMaintenance": {
+          "type": "number",
+          "minimum": 0
+        }
+      }
+    }
+  }
+}

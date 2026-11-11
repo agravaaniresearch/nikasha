@@ -1,0 +1,19 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://github.com/agravaaniresearch/nikasha/schema/sources.schema.json",
+  "title": "Source register",
+  "type": "object", "required": ["meta", "sources"],
+  "properties": {
+    "sources": {
+      "type": "array",
+      "items": {
+        "type": "object", "required": ["id", "title", "url", "kind", "howRead"], "additionalProperties": false,
+        "properties": {
+          "id": { "type": "string" }, "title": { "type": "string" },
+          "url": { "type": "string", "pattern": "^https://", "not": { "pattern": "wikipedia\\.org" } },
+          "kind": { "enum": ["primary", "secondary", "author"] }, "howRead": { "type": "string", "minLength": 10 }
+        }
+      }
+    }
+  }
+}

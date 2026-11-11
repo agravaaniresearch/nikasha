@@ -1,0 +1,278 @@
+{
+  "meta": {
+    "note": "ALL THREE TOOLS ARE FICTIONAL. Every figure is synthetic and was chosen to illustrate one verdict. No real patient, company or product data."
+  },
+  "samples": [
+    {
+      "id": "halvorine",
+      "name": "Halvorine Bleed Reader",
+      "fictional": true,
+      "expectedVerdict": "READY",
+      "summary": "Fictional advisory tool that flags intracranial haemorrhage on non-contrast head CT.",
+      "modality": "CT",
+      "finding": "Intracranial haemorrhage, non-contrast head CT",
+      "mode": "advisory",
+      "gates": {
+        "regulatory": "met",
+        "data_protection": "met",
+        "intended_use": "met",
+        "accountability": "met"
+      },
+      "params": {
+        "sensitivity": {
+          "magnitude": 3,
+          "certainty": "peer_reviewed",
+          "note": "Synthetic: journal paper, multi-reader study."
+        },
+        "specificity": {
+          "magnitude": 3,
+          "certainty": "peer_reviewed",
+          "note": "Synthetic: false positives reviewed by type."
+        },
+        "external_validation": {
+          "magnitude": 3,
+          "certainty": "peer_reviewed",
+          "note": "Synthetic: three external sites, prospective."
+        },
+        "subgroup_performance": {
+          "magnitude": 2,
+          "certainty": "peer_reviewed"
+        },
+        "human_oversight": {
+          "magnitude": 3,
+          "certainty": "clinical_use"
+        },
+        "post_market_monitoring": {
+          "magnitude": 2,
+          "certainty": "clinical_use"
+        },
+        "workflow_integration": {
+          "magnitude": 3,
+          "certainty": "clinical_use"
+        },
+        "deployment": {
+          "magnitude": 3,
+          "certainty": "clinical_use",
+          "note": "Synthetic: on-site GPU node."
+        },
+        "electricity": {
+          "certainty": "clinical_use"
+        },
+        "carbon": {
+          "certainty": "clinical_use"
+        },
+        "storage_cost": {
+          "certainty": "clinical_use"
+        },
+        "daily_cost": {
+          "certainty": "clinical_use"
+        },
+        "tco": {
+          "certainty": "peer_reviewed"
+        },
+        "update_process": {
+          "magnitude": 3,
+          "certainty": "live_demo"
+        },
+        "source_access": {
+          "magnitude": 1,
+          "certainty": "peer_reviewed"
+        }
+      },
+      "infra": {
+        "studiesPerDay": 120,
+        "energyWhPerStudy": 6,
+        "idleWatts": 60,
+        "gridIntensity": 710,
+        "tariffPerKWh": 8,
+        "feePerStudy": 18,
+        "cloudPerDay": 0,
+        "storageTB": 2,
+        "storagePerTBMonth": 1500,
+        "retrievalPerMonth": 0,
+        "upfront": 900000,
+        "annualMaintenance": 150000
+      }
+    },
+    {
+      "id": "pemberwick",
+      "name": "Pemberwick Prostate Lens",
+      "fictional": true,
+      "expectedVerdict": "NOT_READY",
+      "expectedRow": "R3",
+      "summary": "Fictional triage tool that ranks prostate MRI studies by suspicion of significant cancer.",
+      "modality": "MRI",
+      "finding": "Clinically significant prostate cancer, multiparametric MRI",
+      "mode": "triage",
+      "gates": {
+        "regulatory": "met",
+        "data_protection": "met",
+        "intended_use": "met",
+        "accountability": "met"
+      },
+      "params": {
+        "sensitivity": {
+          "magnitude": 3,
+          "certainty": "vendor_claim",
+          "note": "Synthetic: brochure states 97% sensitivity; no study."
+        },
+        "specificity": {
+          "magnitude": 2,
+          "certainty": "peer_reviewed"
+        },
+        "external_validation": {
+          "magnitude": 2,
+          "certainty": "peer_reviewed"
+        },
+        "subgroup_performance": {
+          "magnitude": 1,
+          "certainty": "preprint"
+        },
+        "human_oversight": {
+          "magnitude": 2,
+          "certainty": "live_demo"
+        },
+        "post_market_monitoring": {
+          "magnitude": 1,
+          "certainty": "vendor_claim"
+        },
+        "workflow_integration": {
+          "magnitude": 3,
+          "certainty": "live_demo"
+        },
+        "deployment": {
+          "magnitude": 1,
+          "certainty": "live_demo",
+          "note": "Synthetic: in-country cloud only."
+        },
+        "electricity": {
+          "certainty": "vendor_claim"
+        },
+        "carbon": {
+          "certainty": "vendor_claim"
+        },
+        "storage_cost": {
+          "certainty": "vendor_claim"
+        },
+        "daily_cost": {
+          "certainty": "vendor_claim"
+        },
+        "tco": {
+          "certainty": "vendor_claim"
+        },
+        "update_process": {
+          "magnitude": 1,
+          "certainty": "vendor_claim"
+        },
+        "source_access": {
+          "magnitude": 0,
+          "certainty": "unsupported"
+        }
+      },
+      "infra": {
+        "studiesPerDay": 25,
+        "energyWhPerStudy": 40,
+        "idleWatts": 0,
+        "gridIntensity": 710,
+        "tariffPerKWh": 8,
+        "feePerStudy": 220,
+        "cloudPerDay": 1200,
+        "storageTB": 1,
+        "storagePerTBMonth": 2500,
+        "retrievalPerMonth": 1500,
+        "upfront": 200000,
+        "annualMaintenance": 100000
+      }
+    },
+    {
+      "id": "orrisfield",
+      "name": "Orrisfield Nodule Sieve",
+      "fictional": true,
+      "expectedVerdict": "CONDITIONAL",
+      "summary": "Fictional triage tool that prioritises chest CT studies with suspicious lung nodules.",
+      "modality": "CT",
+      "finding": "Suspicious pulmonary nodule, chest CT",
+      "mode": "triage",
+      "gates": {
+        "regulatory": "met",
+        "data_protection": "met",
+        "intended_use": "met",
+        "accountability": "met"
+      },
+      "params": {
+        "sensitivity": {
+          "magnitude": 3,
+          "certainty": "peer_reviewed"
+        },
+        "specificity": {
+          "magnitude": 3,
+          "certainty": "peer_reviewed"
+        },
+        "external_validation": {
+          "magnitude": 2,
+          "certainty": "peer_reviewed",
+          "note": "Synthetic: two retrospective external sites."
+        },
+        "subgroup_performance": {
+          "magnitude": 2,
+          "certainty": "preprint",
+          "note": "Synthetic: scanner split posted as a preprint only."
+        },
+        "human_oversight": {
+          "magnitude": 3,
+          "certainty": "live_demo"
+        },
+        "post_market_monitoring": {
+          "magnitude": 2,
+          "certainty": "preprint"
+        },
+        "workflow_integration": {
+          "magnitude": 3,
+          "certainty": "live_demo"
+        },
+        "deployment": {
+          "magnitude": 2,
+          "certainty": "live_demo"
+        },
+        "electricity": {
+          "certainty": "live_demo"
+        },
+        "carbon": {
+          "certainty": "live_demo"
+        },
+        "storage_cost": {
+          "certainty": "live_demo"
+        },
+        "daily_cost": {
+          "certainty": "live_demo"
+        },
+        "tco": {
+          "certainty": "preprint"
+        },
+        "update_process": {
+          "magnitude": 2,
+          "certainty": "preprint"
+        },
+        "source_access": {
+          "magnitude": 3,
+          "certainty": "live_demo",
+          "note": "Synthetic: open-source repository with weights."
+        }
+      },
+      "infra": {
+        "studiesPerDay": 80,
+        "energyWhPerStudy": 15,
+        "idleWatts": 55,
+        "gridIntensity": 710,
+        "tariffPerKWh": 8,
+        "feePerStudy": 40,
+        "cloudPerDay": 0,
+        "storageTB": 3,
+        "storagePerTBMonth": 1500,
+        "retrievalPerMonth": 500,
+        "upfront": 500000,
+        "annualMaintenance": 120000
+      }
+    }
+  ]
+}

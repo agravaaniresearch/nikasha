@@ -1,0 +1,99 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://github.com/agravaaniresearch/nikasha/schema/framework.schema.json",
+  "title": "Nikasha framework",
+  "description": "Every rule Nikasha applies: certainty table, modes, entry scope, legal gates, parameters and anchors, derived bands, weight profiles, knockouts, readiness bars and the decision table. A stakeholder panel changes Nikasha by changing this document, not the code. Cross-document rules that JSON Schema cannot express (weights sum to 100, every knockout names a parameter) are enforced in test/schema.test.js.",
+  "type": "object",
+  "required": ["meta", "certainty", "modes", "readyThreshold", "modalities", "gateValues", "gates", "parameters", "derivedCuts", "weights", "knockouts", "infraFields", "decisionRows"],
+  "additionalProperties": false,
+  "properties": {
+    "meta": {
+      "type": "object", "required": ["name", "version", "status", "placeholderNotice"],
+      "properties": { "name": { "type": "string" }, "version": { "type": "string", "pattern": "^\\d+\\.\\d+\\.\\d+$" }, "status": { "type": "string", "minLength": 10 }, "placeholderNotice": { "type": "string", "minLength": 10 } }
+    },
+    "certainty": {
+      "type": "array", "minItems": 2,
+      "items": {
+        "type": "object", "required": ["id", "label", "lo", "hi", "description"], "additionalProperties": false,
+        "properties": { "id": { "type": "string" }, "label": { "type": "string" }, "lo": { "type": "number", "minimum": 0, "maximum": 1 }, "hi": { "type": "number", "minimum": 0, "maximum": 1 }, "description": { "type": "string" } }
+      }
+    },
+    "modes": {
+      "type": "array", "minItems": 1,
+      "items": { "type": "object", "required": ["id", "label", "description"], "properties": { "id": { "$ref": "#/definitions/mode" }, "label": { "type": "string" }, "description": { "type": "string" } } }
+    },
+    "readyThreshold": { "$ref": "#/definitions/perMode0to100" },
+    "modalities": {
+      "type": "array",
+      "items": {
+        "type": "object", "required": ["id", "label", "inScope"],
+        "properties": { "id": { "type": "string" }, "label": { "type": "string" }, "inScope": { "type": "boolean" }, "reason": { "type": "string" } },
+        "if": { "properties": { "inScope": { "const": false } } }, "then": { "required": ["reason"] }
+      }
+    },
+    "gateValues": { "type": "array", "items": { "enum": ["met", "not_met", "unknown"] } },
+    "gates": {
+      "type": "array",
+      "items": {
+        "type": "object", "required": ["id", "label", "description", "modes"],
+        "properties": {
+          "id": { "type": "string" }, "label": { "type": "string" }, "description": { "type": "string" },
+          "modes": { "oneOf": [{ "const": "all" }, { "type": "array", "items": { "$ref": "#/definitions/mode" }, "minItems": 1 }] }
+        }
+      }
+    },
+    "parameters": {
+      "type": "array",
+      "items": {
+        "type": "object", "required": ["id", "label", "domain", "kind"], "additionalProperties": false,
+        "properties": {
+          "id": { "type": "string" }, "label": { "type": "string" },
+          "domain": { "enum": ["clinical", "infrastructure"] },
+          "kind": { "enum": ["assessed", "derived"] },
+          "anchors": { "type": "array", "items": { "type": "string", "minLength": 5 }, "minItems": 4, "maxItems": 4, "description": "Levels 0 to 3. Required for assessed parameters; derived parameters have none, because their anchors are generated from derivedCuts." }
+        },
+        "if": { "properties": { "kind": { "const": "assessed" } } }, "then": { "required": ["anchors"] }, "else": { "not": { "required": ["anchors"] } }
+      }
+    },
+    "derivedCuts": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "object", "required": ["figure", "label", "unit", "cuts"],
+        "properties": {
+          "figure": { "enum": ["whPerStudy", "gco2PerStudy", "dailyCostPerStudy", "storageCostPerStudy", "tcoPerStudy"] },
+          "label": { "type": "string" }, "unit": { "type": "string" },
+          "cuts": { "type": "array", "items": { "type": "number", "minimum": 0 }, "minItems": 3, "maxItems": 3 }
+        }
+      }
+    },
+    "weights": {
+      "type": "object", "required": ["administrative", "advisory", "triage", "autonomous"],
+      "additionalProperties": { "type": "object", "additionalProperties": { "type": "number", "minimum": 0 } }
+    },
+    "knockouts": {
+      "type": "array",
+      "items": {
+        "type": "object", "required": ["param", "thresholds"],
+        "properties": {
+          "param": { "type": "string" },
+          "thresholds": { "type": "object", "required": ["administrative", "advisory", "triage", "autonomous"], "additionalProperties": { "type": ["number", "null"], "minimum": 0, "maximum": 3 } }
+        }
+      }
+    },
+    "infraFields": { "type": "array", "items": { "type": "object", "required": ["id", "label", "unit"] } },
+    "decisionRows": {
+      "type": "array", "minItems": 6, "maxItems": 6,
+      "items": {
+        "type": "object", "required": ["id", "tier", "condition", "verdict", "label"],
+        "properties": { "id": { "type": "string", "pattern": "^R[1-6]$" }, "tier": { "type": "string" }, "condition": { "type": "string" }, "verdict": { "enum": ["READY", "CONDITIONAL", "NOT_READY", "REJECTED"] }, "label": { "type": "string" } }
+      }
+    }
+  },
+  "definitions": {
+    "mode": { "enum": ["administrative", "advisory", "triage", "autonomous"] },
+    "perMode0to100": {
+      "type": "object", "required": ["administrative", "advisory", "triage", "autonomous"], "additionalProperties": false,
+      "properties": { "administrative": { "type": "number", "minimum": 0, "maximum": 100 }, "advisory": { "type": "number", "minimum": 0, "maximum": 100 }, "triage": { "type": "number", "minimum": 0, "maximum": 100 }, "autonomous": { "type": "number", "minimum": 0, "maximum": 100 } }
+    }
+  }
+}

@@ -1,0 +1,13 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://github.com/agravaaniresearch/nikasha/schema/samples.schema.json",
+  "title": "Synthetic sample tools",
+  "type": "object", "required": ["meta", "samples"],
+  "properties": {
+    "meta": { "type": "object", "required": ["note"] },
+    "samples": {
+      "type": "array", "minItems": 1,
+      "items": { "allOf": [{ "$ref": "tool.schema.json" }, { "required": ["fictional", "expectedVerdict"], "properties": { "fictional": { "const": true } } }] }
+    }
+  }
+}
