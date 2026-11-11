@@ -60,3 +60,21 @@ Knockouts compare the worst-case effective score with the minimum. A pass or fai
 - Is per-study normalisation fair to low-volume sites with fixed hardware costs?
 - Daily running cost is part of five-year cost of ownership; should one of them be dropped to remove the overlap?
 - Which regulatory regimes should the legal gates name explicitly beyond the generic wording used now?
+
+## v0.2 decisions (12 November 2026)
+
+1. Rules moved to `data/framework.json` under a schema; the engine applies data only. The v0.2 engine reproduces every v0.1 output on the frozen v0.1 samples.
+2. Affordability is a separate axis built by `src/cost.js` from the pinned Vyaya engine and data. It never enters a gate, knockout or merit score.
+3. Worst and best in the cost profile name the performance case (lower 95% bound or point estimate), not the cost; the affordability verdict looks at both nets.
+4. Advisory errors assume reader and tool err independently. This is stated on every advisory result as an upper bound on savings, because automation bias breaks it.
+5. Triage misses are delays, not misses, and the tool is credited for reading flagged positives first.
+6. Shared inputs (hardware life, residual value, cost of capital, GPU failure rate, uncovered share, PUE) are read from Vyaya and never duplicated here.
+7. Grid carbon falls back to one national CEA figure, because India runs one synchronised grid; tariffs, unlike carbon, are state-wise.
+8. The driver analysis halves and raises by half each placeholder or illustrative input and reports those that change the affordability verdict.
+9. Engine and cost bridge read only own properties of the tool document.
+
+## Open questions added in v0.2
+
+- Finding F1: under the placeholder weights a verdict can improve with autonomy. Should the bars rise faster than the clinical weight share, or should administrative mode weigh missing infrastructure evidence less?
+- Who measures the deciding placeholders first: reader sensitivity, the cost of a delayed finding, and the share of positives a normal queue delays?
+- Should the cost defaults carry a currency so that a port to another health system converts rather than relabels them?
