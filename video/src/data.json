@@ -1,0 +1,196 @@
+[
+ {
+  "id": "halvorine",
+  "name": "Halvorine Bleed Reader",
+  "modality": "CT",
+  "mode": "advisory",
+  "verdict": "READY",
+  "label": "Ready",
+  "meritWorst": 76.1,
+  "meritBest": 90.7,
+  "bar": 60,
+  "afford": "SAVES",
+  "total": [
+   311,
+   336
+  ],
+  "manual": 612,
+  "computeShare": 8,
+  "layers": [
+   {
+    "id": "licence_compute",
+    "label": "Licence, compute and hardware",
+    "v": 25.9
+   },
+   {
+    "id": "power",
+    "label": "Electricity (with facility overhead)",
+    "v": 0.3
+   },
+   {
+    "id": "storage",
+    "label": "Storage and retrieval",
+    "v": 0.8
+   },
+   {
+    "id": "integration",
+    "label": "Integration and support",
+    "v": 7.9
+   },
+   {
+    "id": "validation",
+    "label": "Validation, re-validation and audit",
+    "v": 8.9
+   },
+   {
+    "id": "governance",
+    "label": "Clinical governance",
+    "v": 4.2
+   },
+   {
+    "id": "reading",
+    "label": "Radiologist reading and flag review",
+    "v": 207.8
+   },
+   {
+    "id": "errors",
+    "label": "Cost of errors (misses, delays, false alarms)",
+    "v": 80.6
+   }
+  ],
+  "drivers": [
+   "Radiologist sensitivity reading without the tool"
+  ],
+  "reason": "Worst-case merit 76.1 is at or above the advisory threshold of 60."
+ },
+ {
+  "id": "pemberwick",
+  "name": "Pemberwick Prostate Lens",
+  "modality": "MRI",
+  "mode": "triage",
+  "verdict": "NOT_READY",
+  "label": "Not ready: clinical knockout",
+  "meritWorst": 25,
+  "meritBest": 38.6,
+  "bar": 68,
+  "afford": "SAVES",
+  "total": [
+   2424,
+   2552
+  ],
+  "manual": 2759,
+  "computeShare": 11,
+  "layers": [
+   {
+    "id": "licence_compute",
+    "label": "Licence, compute and hardware",
+    "v": 283.8
+   },
+   {
+    "id": "power",
+    "label": "Electricity (with facility overhead)",
+    "v": 0.7
+   },
+   {
+    "id": "storage",
+    "label": "Storage and retrieval",
+    "v": 5.3
+   },
+   {
+    "id": "integration",
+    "label": "Integration and support",
+    "v": 37.8
+   },
+   {
+    "id": "validation",
+    "label": "Validation, re-validation and audit",
+    "v": 19.7
+   },
+   {
+    "id": "governance",
+    "label": "Clinical governance",
+    "v": 20
+   },
+   {
+    "id": "reading",
+    "label": "Radiologist reading and flag review",
+    "v": 525.3
+   },
+   {
+    "id": "errors",
+    "label": "Cost of errors (misses, delays, false alarms)",
+    "v": 1659.4
+   }
+  ],
+  "drivers": [
+   "Cost of one finding delayed by triage ranking it low",
+   "Share of positive studies delayed in an unprioritised queue"
+  ],
+  "reason": "Clinical knockout failed: Sensitivity (false negatives) worst-case 0.3 against a minimum of 2."
+ },
+ {
+  "id": "orrisfield",
+  "name": "Orrisfield Nodule Sieve",
+  "modality": "CT",
+  "mode": "triage",
+  "verdict": "CONDITIONAL",
+  "label": "Conditional: evidence-dependent",
+  "meritWorst": 49.8,
+  "meritBest": 69,
+  "bar": 68,
+  "afford": "EVIDENCE_DEPENDENT",
+  "total": [
+   1419,
+   1476
+  ],
+  "manual": 1436,
+  "computeShare": 3,
+  "layers": [
+   {
+    "id": "licence_compute",
+    "label": "Licence, compute and hardware",
+    "v": 47.8
+   },
+   {
+    "id": "power",
+    "label": "Electricity (with facility overhead)",
+    "v": 0.4
+   },
+   {
+    "id": "storage",
+    "label": "Storage and retrieval",
+    "v": 2.1
+   },
+   {
+    "id": "integration",
+    "label": "Integration and support",
+    "v": 253.5
+   },
+   {
+    "id": "validation",
+    "label": "Validation, re-validation and audit",
+    "v": 10.3
+   },
+   {
+    "id": "governance",
+    "label": "Clinical governance",
+    "v": 6.3
+   },
+   {
+    "id": "reading",
+    "label": "Radiologist reading and flag review",
+    "v": 311.8
+   },
+   {
+    "id": "errors",
+    "label": "Cost of errors (misses, delays, false alarms)",
+    "v": 844
+   }
+  ],
+  "drivers": [
+   "Cost of one finding delayed by triage ranking it low",
+   "Share of positive studies delayed in an unprioritised queue"
+  ],
+  "reason": "Merit band 49.8 to 69.0 straddles the triage threshold of 68. Firmer evidence would decide it."
+ }
+]

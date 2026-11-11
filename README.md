@@ -116,7 +116,7 @@ A stakeholder panel changes Nikasha by editing `data/framework.json`, not the en
 | `adversarial` | 15 | Fifteen ways a vendor might game the framework, each with the defence that must hold |
 | `build` | 7 | The page embeds exactly the source files, loads nothing external, and avoids blue and navy |
 
-The test bed has already found three problems that v0.1 missed. Missing figures were reported as NaN. A gate value inherited through an object's prototype counted as documented. And the v0.1 claim that a verdict never improves with autonomy is false in general under the placeholder weights. The first two are fixed. The third is a weighting question for the panel and is pinned by a test so it cannot be lost. See [docs/FAILURE-MODES.md](docs/FAILURE-MODES.md).
+The test bed has already found five problems that v0.1 missed. Missing figures were reported as NaN; a gate value inherited through an object's prototype counted as documented; very large inputs overflowed; and strings such as "constructor" matched built-in object properties. Those four are fixed. The fifth is that the v0.1 claim that a verdict never improves with autonomy is false in general under the placeholder weights. That is a weighting question for the panel, and it is pinned by a test so it cannot be lost. See [docs/FAILURE-MODES.md](docs/FAILURE-MODES.md).
 
 ## Run it yourself
 
@@ -145,6 +145,7 @@ npm run verify           # build check, tests, demo and headless browser check
 | `vendor/vyaya/` | Pinned Vyaya engine, tariffs, assumptions and sources, with hashes in `VYAYA.json` |
 | `test/` | The test bed and its fixtures |
 | `docs/` | Schema guide, policy notes, failure modes, screenshots |
+| `video/` | Remotion source for the 94-second explainer, driven by the engine's own output |
 | `notes/nikasha.md` | Design reasoning and open questions |
 | `DEPLOYMENT.md` | How to deploy, update and verify, for engineers |
 

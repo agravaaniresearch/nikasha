@@ -1,0 +1,19 @@
+{
+  "name": "nikasha-explainer",
+  "version": "1.0.0",
+  "description": "Remotion explainer for Nikasha and Vyaya. Synthetic data, for illustration only.",
+  "scripts": {
+    "data": "node scripts/export-data.js",
+    "studio": "remotion studio src/index.js",
+    "render": "remotion render src/index.js Explainer out/nikasha-vyaya-explainer.mp4 --codec=h264 --crf=18 --x264-preset=veryfast"
+  },
+  "license": "ISC",
+  "dependencies": {
+    "@remotion/cli": "^4.0.543",
+    "@remotion/transitions": "^4.0.543",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "remotion": "^4.0.543"
+  },
+  "private": true
+}
